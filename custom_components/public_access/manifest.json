@@ -1,0 +1,13 @@
+{
+  "domain": "public_access",
+  "name": "Public Access",
+  "codeowners": ["@dllfpp"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend", "lovelace", "recorder"],
+  "documentation": "https://github.com/dllfpp/ha-public-access",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/dllfpp/ha-public-access/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

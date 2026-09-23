@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Public Access",
+        "description": "Inserisci la chiave di abbonamento. In fase di sviluppo funziona offline qualsiasi chiave che inizia con DEV-.",
+        "data": { "license_key": "Chiave di abbonamento" }
+      },
+      "dashboard": {
+        "title": "Scegli cosa pubblicare",
+        "description": "Si possono pubblicare solo le dashboard con una configurazione salvata. Lascia vuoto il percorso della vista per pubblicare la prima.",
+        "data": {
+          "dashboard": "Dashboard",
+          "view_path": "Percorso della vista (facoltativo)"
+        }
+      },
+      "path": {
+        "title": "Scegli l'indirizzo pubblico",
+        "description": "La dashboard sarà leggibile su https://tuo-home-assistant/<percorso>, senza login. Usa solo lettere minuscole, cifre e underscore — senza trattino, così non può mai entrare in conflitto con una tua dashboard.",
+        "data": { "public_path": "Percorso pubblico" }
+      }
+    },
+    "error": {
+      "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
+      "path_reserved": "Questo percorso è riservato da Home Assistant.",
+      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard. Usarlo nasconderebbe una parte del tuo Home Assistant."
+    },
+    "abort": {
+      "single_instance_allowed": "Public Access è già configurato.",
+      "no_dashboards": "Nessuna dashboard ha una configurazione salvata. Crea una dashboard, aggiungi le card, salvala e poi configura questa integrazione."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Impostazioni di Public Access",
+        "description": "La modifica del percorso pubblico ha effetto dopo il riavvio di Home Assistant.",
+        "data": {
+          "enabled": "Pubblica la dashboard",
+          "dashboard": "Dashboard",
+          "view_path": "Percorso della vista (facoltativo)",
+          "public_path": "Percorso pubblico",
+          "noindex": "Chiedi ai motori di ricerca di non indicizzarla",
+          "show_devices": "Includi i consumi dei singoli dispositivi",
+          "cache_seconds": "Durata della cache",
+          "frame_ancestors": "Origini autorizzate all'incorporamento (CSP frame-ancestors)"
+        }
+      }
+    },
+    "error": {
+      "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
+      "path_reserved": "Questo percorso è riservato da Home Assistant.",
+      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Riavvia per completare lo spostamento della dashboard pubblica",
+      "description": "Il percorso pubblico è cambiato in {new}, ma {old} resta attivo fino al riavvio di Home Assistant, perché una rotta non può essere rimossa a runtime."
+    }
+  }
+}

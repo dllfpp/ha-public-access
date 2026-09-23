@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Public Access",
+        "description": "Enter your subscription key. During development, any key starting with DEV- works offline.",
+        "data": { "license_key": "Subscription key" }
+      },
+      "dashboard": {
+        "title": "Choose what to publish",
+        "description": "Only dashboards with a saved configuration can be published. Leave the view path empty to publish the first view.",
+        "data": {
+          "dashboard": "Dashboard",
+          "view_path": "View path (optional)"
+        }
+      },
+      "path": {
+        "title": "Choose the public address",
+        "description": "The dashboard will be readable at https://your-home-assistant/<path>, with no login. Use lowercase letters, digits and underscores only — no hyphen, so it can never collide with one of your dashboards.",
+        "data": { "public_path": "Public path" }
+      }
+    },
+    "error": {
+      "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
+      "path_reserved": "That path is reserved by Home Assistant.",
+      "path_in_use": "That path already belongs to a panel or dashboard. Choosing it would hide part of your Home Assistant."
+    },
+    "abort": {
+      "single_instance_allowed": "Public Access is already configured.",
+      "no_dashboards": "No dashboard has a saved configuration yet. Create a dashboard, add cards, save it, then set this up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Public Access settings",
+        "description": "Changing the public path takes effect after a Home Assistant restart.",
+        "data": {
+          "enabled": "Serve the public dashboard",
+          "dashboard": "Dashboard",
+          "view_path": "View path (optional)",
+          "public_path": "Public path",
+          "noindex": "Ask search engines not to index it",
+          "show_devices": "Include individual device consumption",
+          "cache_seconds": "Cache duration",
+          "frame_ancestors": "Allowed embedding origins (CSP frame-ancestors)"
+        }
+      }
+    },
+    "error": {
+      "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
+      "path_reserved": "That path is reserved by Home Assistant.",
+      "path_in_use": "That path already belongs to a panel or dashboard."
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart to finish moving the public dashboard",
+      "description": "The public path changed to {new}, but {old} stays active until Home Assistant restarts, because a route cannot be removed at runtime."
+    }
+  }
+}
