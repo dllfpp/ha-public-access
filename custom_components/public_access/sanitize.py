@@ -35,10 +35,16 @@ CARD_KEYS: dict[str, frozenset[str]] = {
         {"entities", "stat_types", "period", "days_to_show", "chart_type", "unit"}
     ),
     "history-graph": frozenset({"entities", "hours_to_show"}),
+    "statistic": frozenset({"entity", "name", "stat_type", "period", "unit"}),
     "gauge": frozenset({"entity", "min", "max", "needle", "severity", "unit", "name"}),
     "tile": frozenset({"entity", "name", "state_content", "hide_state", "vertical"}),
     "sensor": frozenset({"entity", "name", "graph", "unit", "hours_to_show"}),
     "entities": frozenset({"entities", "state_color", "show_header_toggle"}),
+    "glance": frozenset(
+        {"entities", "columns", "show_name", "show_state", "show_icon", "state_color"}
+    ),
+    # `badges` is deliberately not allowed: a badge can carry its own action.
+    "heading": frozenset({"heading", "heading_style", "icon"}),
     "markdown": frozenset({"content"}),
     "grid": frozenset({"cards", "columns", "square"}),
     "vertical-stack": frozenset({"cards"}),
@@ -91,6 +97,7 @@ ACTION_KEYS: frozenset[str] = frozenset(
         "camera_view",
         "image",
         "elements",
+        "badges",
     }
 )
 
@@ -196,8 +203,15 @@ def _clean_entities(
     return out
 
 
+# Cards whose data comes from long-term statistics rather than current state. For
+# these, a plain entity id is also a statistic id, so it must reach the statistic
+# allowlist or the card would have nothing to draw.
+STATISTIC_CARDS: frozenset[str] = frozenset({"statistics-graph", "statistic"})
+
+
 def _collect_ids(card: dict[str, Any], entities: set[str], statistics: set[str]) -> None:
     """Gather the ids a sanitized card legitimately needs."""
+    from_statistics = card.get("type") in STATISTIC_CARDS
     for key in ("entity", "entities"):
         value = card.get(key)
         items = [value] if isinstance(value, str) else (value or [])
@@ -207,8 +221,11 @@ def _collect_ids(card: dict[str, Any], entities: set[str], statistics: set[str])
             candidate = item.get("entity") if isinstance(item, dict) else item
             if not isinstance(candidate, str):
                 continue
-            # An id containing ':' is an external statistic, not an entity.
-            (statistics if ":" in candidate else entities).add(candidate)
+            if from_statistics or ":" in candidate:
+                # An id containing ':' is an external statistic, never an entity.
+                statistics.add(candidate)
+            else:
+                entities.add(candidate)
     for nested in card.get("cards") or []:
         if isinstance(nested, dict):
             _collect_ids(nested, entities, statistics)

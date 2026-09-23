@@ -4,26 +4,47 @@
 [![validate][validate-badge]][validate-url]
 
 **Share one Home Assistant dashboard publicly, read-only, on your own domain.**
-Your visitors see `https://home.example.com/fotovoltaico` — no account, no login, and no way to touch
-anything in your house.
 
-Built for photovoltaic owners who want to show their production to neighbours, a local energy
-community, a municipality page or a screen in a shop window.
+You build a dashboard, choose a path, and it becomes readable at
+`https://home.example.com/<your-path>` — no account, no login, and no way for a visitor to change
+anything in your house.
 
 ---
 
 ## The problem this solves
 
-Home Assistant puts every dashboard behind the login, which is exactly right for a system that can
-unlock your door — but it leaves no way to show a dashboard to someone who should only ever look.
-Sharing the energy dashboard publicly has been requested for years and there is still no built-in
-option. The usual workarounds are heavy (mirror everything into InfluxDB and publish Grafana) or
-dangerous (hand out a long-lived token, which grants full control of the instance).
+Home Assistant puts every dashboard behind the login. That is exactly right for a system that can
+unlock your door — but it leaves no way to show a dashboard to someone who should only ever *look*.
 
-Public Access adds that single capability and nothing else: **one dashboard, one public path,
-read-only, no credentials anywhere.**
+There is still no built-in option for it. The usual workarounds are heavy (mirror everything into
+InfluxDB and publish Grafana instead) or outright dangerous (hand out a long-lived access token, which
+grants full control of the instance to whoever holds it).
 
-<!-- TODO before launch: add a screenshot of a published dashboard here. -->
+Public Access adds one capability and nothing else: **one dashboard, one public path, read-only, with
+no credentials anywhere.**
+
+## What people publish with it
+
+Anything you can express as a dashboard. A few examples:
+
+* **Energy and solar production** — show your PV output to neighbours or an energy community.
+* **A weather station or air-quality sensor** — publish the readings your neighbourhood actually cares
+  about, on your own page instead of someone else's platform.
+* **Community and municipal projects** — river levels, noise, temperature in a public building, a
+  village's shared monitoring.
+* **Farms, greenhouses, apiaries** — soil moisture, tank levels, hive weight, for co-owners or customers.
+* **Holiday rentals and B&Bs** — a guest info screen with indoor climate, pool temperature and the
+  house rules, opened from a QR code with nothing to log into.
+* **Shops, offices, clubs** — an opening-hours and status board, a marina's berth availability, a
+  makerspace's machine status, a sports club's court occupancy.
+* **Status screens and kiosks** — a wall display or a tablet that must show live data without ever
+  holding a credential, so a stolen device gives away nothing.
+
+Long-term statistics, live sensor values, charts and text are all supported, so most "show these
+numbers to people" dashboards work. Energy dashboards happen to be very well covered, but they are one
+use case, not the point.
+
+<!-- TODO before launch: add screenshots of two or three different published dashboards here. -->
 
 ---
 
@@ -36,23 +57,26 @@ read-only, no credentials anywhere.**
    cards, and **save it**. A dashboard that has never been saved has no stored configuration and
    cannot be published — the picker will not offer it.
 4. **Settings → Devices & Services → Add Integration → Public Access.** Enter your subscription key,
-   choose the dashboard and the view, then choose the public path (for example `fotovoltaico`).
-5. Open `https://your-home-assistant/fotovoltaico` **in a private window** to see exactly what the
+   choose the dashboard and the view, then choose the public path.
+5. Open `https://your-home-assistant/<your-path>` **in a private window** to see exactly what the
    public sees.
 
 > While the licence service is being built, any key starting with `DEV-` unlocks the plugin locally.
+
+**Build a dashboard for the public on purpose.** Do not point this at your main dashboard: publish a
+dashboard you assembled deliberately, containing only what you are happy for strangers to read.
 
 ---
 
 ## How it works
 
 ```
-visitor ──GET /fotovoltaico──▶ Home Assistant ──▶ Public Access
-                                                   │
-                                   reads your dashboard's stored config (internally)
-                                   sanitizes it against a whitelist
-                                   derives an entity + statistic allowlist from what survived
-                                   serves a static page + read-only JSON, cached
+visitor ──GET /your-path──▶ Home Assistant ──▶ Public Access
+                                                │
+                                reads your dashboard's stored config (internally)
+                                sanitizes it against a whitelist
+                                derives an entity + statistic allowlist from what survived
+                                serves a static page + read-only JSON, cached
 ```
 
 Four properties follow from that design:
@@ -80,7 +104,7 @@ it is a whitelist, not a filter:
 | --- | --- |
 | Dangerous cards never render | `iframe`, `webpage`, `picture-elements`, `picture-glance`, `map`, `media-control`, `button`, `thermostat`, `light`, … are dropped outright |
 | Unknown cards leak nothing | Any card type not on the supported list becomes a neutral placeholder; its configuration is discarded |
-| No action can be triggered | `tap_action`, `hold_action`, `service`, `target`, `url`, `navigation_path`, `webhook`, … are stripped at every nesting level |
+| No action can be triggered | `tap_action`, `hold_action`, `service`, `target`, `url`, `navigation_path`, `webhook`, `badges`, … are stripped at every nesting level |
 | No stray config escapes | Only keys explicitly allowed for each card type are emitted |
 | No hidden entity data escapes | The entity allowlist is derived from the cards that survived sanitizing |
 | No sensitive attributes escape | Only `friendly_name`, `unit_of_measurement`, `device_class`, `state_class`, `icon`, `min`, `max`, `step` are published — attribute dictionaries routinely carry latitude/longitude, entity pictures and access tokens, and none of those leave your instance |
@@ -91,7 +115,7 @@ write-capable call, asserts the public view implements no verb but `GET`, assert
 choose ids, and runs the sanitizer against a deliberately hostile dashboard.
 
 ```bash
-python -m pytest tests -q     # 13 passed
+python -m pytest tests -q
 ```
 
 **Check what you are publishing at any time.** Settings → Devices & Services → Public Access →
@@ -115,10 +139,13 @@ that happen:
 
 | Category | Cards |
 | --- | --- |
+| **Text and layout** | `markdown`, `heading`, `grid`, `vertical-stack`, `horizontal-stack` |
+| **Current values** | `tile`, `entities`, `glance`, `gauge`, `sensor` |
+| **Charts and history** | `statistics-graph`, `history-graph`, `statistic` |
 | **Energy** | `energy-usage-graph`, `energy-solar-graph`, `energy-gas-graph`, `energy-water-graph`, `energy-distribution`, `energy-sources-table`, `energy-devices-graph`, `energy-devices-detail-graph`, `energy-self-consumption-gauge`, `energy-grid-neutrality-gauge`, `energy-carbon-consumed-gauge`, `energy-date-selection` |
-| **Generic** | `statistics-graph`, `history-graph`, `gauge`, `tile`, `sensor`, `entities`, `markdown`, `grid`, `vertical-stack`, `horizontal-stack` |
 
-Everything else renders as a placeholder, so your layout stays honest about what is missing.
+Both the section and the classic (masonry) dashboard layouts are read. Anything not on the list renders
+as a placeholder, so your layout stays honest about what is missing.
 
 **Custom HACS cards are not supported, by design.** A community card expects a live, authenticated
 Home Assistant connection with full access — precisely what a public page must never have. Build your
@@ -155,7 +182,7 @@ that header at your reverse proxy and let the integration's CSP govern who may f
 **Nginx / Nginx Proxy Manager** (Advanced → Custom Nginx Configuration), on the public path only:
 
 ```nginx
-location /fotovoltaico {
+location /your-path {
     proxy_pass http://homeassistant:8123;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -193,8 +220,8 @@ It collides with a Home Assistant panel or one of your dashboards, or it contain
 [Choosing the public path](#choosing-the-public-path); this check is protecting your own interface.
 
 **The charts say "No statistics for this period yet".**
-The published cards reference statistics your recorder has not collected yet, or your energy dashboard
-is not configured. Check Settings → Dashboards → Energy first.
+The published cards reference long-term statistics that your recorder has not collected. Only entities
+with a `state_class` get statistics; for an energy dashboard, check Settings → Dashboards → Energy first.
 
 **A card shows a placeholder.**
 That card type is not supported. See [Supported cards](#supported-cards).
@@ -222,10 +249,10 @@ cd ha-public-access
 python -m pytest tests -q          # sanitizer + no-write invariants, no HA install needed
 ```
 
-The reference environment is a throwaway Home Assistant container seeded with synthetic PV statistics
-and a deliberately hostile dashboard — one containing an `iframe`, a `picture-elements` with a
-service-call action, stray keys, an unknown custom card and a second private view — so every release
-is checked against the payloads a real attacker would look for.
+The reference environment is a throwaway Home Assistant container seeded with synthetic statistics and
+a deliberately hostile dashboard — one containing an `iframe`, a `picture-elements` with a
+service-call action, action-carrying badges, stray keys, an unknown custom card and a second private
+view — so every release is checked against the payloads a real attacker would look for.
 
 Copy `custom_components/public_access` into your Home Assistant `config/custom_components/` directory
 and restart to test a change.

@@ -219,6 +219,35 @@
         box.appendChild(tiles);
         break;
       }
+      case "glance": {
+        const tiles = el("div", "tiles");
+        (card.entities || []).forEach((item) => {
+          tiles.appendChild(tile(typeof item === "string" ? item : item.entity));
+        });
+        box.appendChild(tiles);
+        break;
+      }
+      case "heading": {
+        box.className = "heading";
+        box.appendChild(el("h2", null, card.heading || card.title || ""));
+        break;
+      }
+      case "statistic": {
+        const ids = [card.entity].filter(Boolean);
+        const tiles = el("div", "tiles");
+        const node = el("div", "tile");
+        node.append(
+          el("span", "label", card.name || card.entity),
+          (() => {
+            const value = el("span", "value", fmt(total(ids)));
+            value.append(el("span", "unit", " " + (card.unit || "")));
+            return value;
+          })()
+        );
+        tiles.appendChild(node);
+        box.appendChild(tiles);
+        break;
+      }
       case "energy-usage-graph": {
         if (!card.title) box.appendChild(el("h2", null, "Energy usage"));
         box.appendChild(barChart([
@@ -341,9 +370,14 @@
       app.appendChild(el("p", "notice", "This dashboard has no saved configuration yet."));
       return;
     }
-    if (energy || cards.some((card) => card.type === "energy-date-selection")) {
-      app.appendChild(periodSwitcher());
-    }
+    // The period switcher is shown whenever something on the page reads long-term
+    // statistics, not only for energy dashboards.
+    const usesStatistics = energy || cards.some((card) =>
+      card.type === "energy-date-selection" ||
+      card.type === "statistics-graph" ||
+      card.type === "statistic" ||
+      String(card.type).startsWith("energy-"));
+    if (usesStatistics) app.appendChild(periodSwitcher());
     cards.forEach((card) => {
       const node = renderCard(card);
       if (node) app.appendChild(node);

@@ -89,23 +89,79 @@ def test_allowlist_contains_only_published_entities():
     assert "lock.front" not in result.entity_ids
 
 
-def test_external_statistics_are_separated_from_entities():
+def test_statistics_cards_put_their_ids_on_the_statistic_allowlist():
+    """For a statistics card a plain entity id is also its statistic id."""
     config = {
         "views": [
             {
-                "path": "pv",
+                "path": "v",
+                "cards": [
+                    {"type": "statistics-graph", "entities": ["sensor.local", "external:solar"]},
+                    {"type": "statistic", "entity": "sensor.counter"},
+                ],
+            }
+        ]
+    }
+    result = sanitize.sanitize_dashboard(config, "v")
+    assert result.statistic_ids == {"sensor.local", "external:solar", "sensor.counter"}
+    assert result.entity_ids == set()
+
+
+def test_external_statistic_ids_never_land_on_the_entity_allowlist():
+    config = {
+        "views": [
+            {"path": "v", "cards": [{"type": "entities", "entities": ["sensor.a", "external:x"]}]}
+        ]
+    }
+    result = sanitize.sanitize_dashboard(config, "v")
+    assert result.entity_ids == {"sensor.a"}
+    assert result.statistic_ids == {"external:x"}
+
+
+def test_badges_are_stripped_from_a_heading_card():
+    config = {
+        "views": [
+            {
+                "path": "v",
                 "cards": [
                     {
-                        "type": "statistics-graph",
-                        "entities": ["sensor.local", "external:solar"],
+                        "type": "heading",
+                        "heading": "Overview",
+                        "badges": [
+                            {"entity": "lock.front", "tap_action": {"action": "toggle"}}
+                        ],
                     }
                 ],
             }
         ]
     }
-    result = sanitize.sanitize_dashboard(config, "pv")
-    assert result.entity_ids == {"sensor.local"}
-    assert result.statistic_ids == {"external:solar"}
+    result = sanitize.sanitize_dashboard(config, "v")
+    assert result.cards == [{"type": "heading", "heading": "Overview"}]
+    assert "lock.front" not in result.entity_ids
+
+
+def test_glance_entities_are_published_and_cleaned():
+    config = {
+        "views": [
+            {
+                "path": "v",
+                "cards": [
+                    {
+                        "type": "glance",
+                        "columns": 3,
+                        "entities": [
+                            "sensor.a",
+                            {"entity": "sensor.b", "name": "B", "tap_action": {"action": "toggle"}},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    result = sanitize.sanitize_dashboard(config, "v")
+    assert result.cards[0]["columns"] == 3
+    assert result.entity_ids == {"sensor.a", "sensor.b"}
+    assert "tap_action" not in str(result.cards)
 
 
 def test_sections_layout_cards_are_published():

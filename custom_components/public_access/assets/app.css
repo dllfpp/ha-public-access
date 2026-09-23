@@ -74,6 +74,10 @@ h1 {
   margin: 0 0 12px;
 }
 
+/* A heading card is a section label, not a boxed card. */
+.heading { background: none; border: 0; box-shadow: none; padding: 12px 2px 0; }
+.heading h2 { font-size: 1.0625rem; margin: 0; }
+
 .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 
 .tile { display: grid; gap: 2px; }
