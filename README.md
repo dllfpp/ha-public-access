@@ -194,9 +194,10 @@ image is older than the configured refresh, so a dashboard nobody looks at costs
 companion is a small Python process. Nothing is uploaded anywhere: the token and the image both stay
 on your machine.
 
-**What the visitor sees.** The view as your dashboard shows it by default — for energy cards that
-means the period Home Assistant opens on, usually today. The header, the view tabs and the sidebar
-are hidden, so the names of your other views are not revealed.
+**What the visitor sees.** The view as your dashboard shows it. Energy cards open on today by
+default; set the companion's `period` option to `week`, `month` or `year` to publish that range
+instead. The header, the view tabs and the sidebar are hidden, so the names of your other views are
+not revealed.
 
 ---
 
