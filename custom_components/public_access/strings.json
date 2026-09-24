@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Enter your subscription key. No key yet? Start a free trial at https://publicaccess.dllfpp.cloud.",
+        "description": "Enter your subscription key. No key yet? Start a free trial at {trial_url}.",
         "data": { "license_key": "Subscription key" }
       },
       "dashboard": {
@@ -21,6 +21,8 @@
       }
     },
     "error": {
+      "license_refused": "The license server refused this key: {reason}",
+      "cannot_connect": "Could not reach the license server. Check that Home Assistant has internet access and try again.",
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
       "path_in_use": "That path already belongs to a panel or dashboard. Choosing it would hide part of your Home Assistant."
@@ -50,6 +52,8 @@
       }
     },
     "error": {
+      "license_refused": "The license server refused this key: {reason}",
+      "cannot_connect": "Could not reach the license server. Check that Home Assistant has internet access and try again.",
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
       "path_in_use": "That path already belongs to a panel or dashboard."

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Inserisci la chiave di abbonamento. Non hai una chiave? Inizia la prova gratuita su https://publicaccess.dllfpp.cloud.",
+        "description": "Inserisci la chiave di abbonamento. Non hai una chiave? Inizia la prova gratuita su {trial_url}.",
         "data": { "license_key": "Chiave di abbonamento" }
       },
       "dashboard": {
@@ -21,6 +21,8 @@
       }
     },
     "error": {
+      "license_refused": "Il server delle licenze ha rifiutato questa chiave: {reason}",
+      "cannot_connect": "Impossibile raggiungere il server delle licenze. Verifica che Home Assistant abbia accesso a internet e riprova.",
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
       "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard. Usarlo nasconderebbe una parte del tuo Home Assistant."
@@ -50,6 +52,8 @@
       }
     },
     "error": {
+      "license_refused": "Il server delle licenze ha rifiutato questa chiave: {reason}",
+      "cannot_connect": "Impossibile raggiungere il server delle licenze. Verifica che Home Assistant abbia accesso a internet e riprova.",
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
       "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard."

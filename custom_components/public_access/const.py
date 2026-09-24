@@ -42,6 +42,7 @@ SNAPSHOT_REQUEST: Final = "render.request"
 
 DEFAULT_PUBLIC_PATH: Final = "public"
 DEFAULT_LICENSE_SERVER: Final = "https://api.dllfpp.cloud"
+TRIAL_URL: Final = "https://publicaccess.dllfpp.cloud"
 # How often the integration re-checks the subscription. The server also refuses
 # to be polled harder than this.
 LICENSE_REFRESH_HOURS: Final = 12

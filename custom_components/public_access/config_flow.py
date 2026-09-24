@@ -25,8 +25,10 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers import selector
+from homeassistant.loader import async_get_integration
 
 from . import data as ha_data
+from .license import STATUS_OFFLINE, LicenseManager
 from .const import (
     CONF_CACHE_SECONDS,
     CONF_DASHBOARD,
@@ -40,6 +42,7 @@ from .const import (
     CONF_SHOW_DEVICES,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
+    DEFAULT_LICENSE_SERVER,
     DEFAULT_MODE,
     DEFAULT_NOINDEX,
     DEFAULT_PUBLIC_PATH,
@@ -49,6 +52,7 @@ from .const import (
     MODE_SNAPSHOT,
     DOMAIN,
     RESERVED_PATHS,
+    TRIAL_URL,
 )
 
 PATH_PATTERN = re.compile(r"^[a-z0-9_]{2,48}$")
@@ -81,15 +85,38 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
 
+        errors: dict[str, str] = {}
+        reason = ""
         if user_input is not None:
-            self._data[CONF_LICENSE_KEY] = user_input[CONF_LICENSE_KEY].strip()
-            return await self.async_step_dashboard()
+            key = user_input[CONF_LICENSE_KEY].strip()
+            # Activate now, so a refused key (a second trial on this instance,
+            # a revoked or expired key) is reported here, before the owner
+            # configures everything else. The saved entitlement is the one
+            # setup then starts from.
+            integration = await async_get_integration(self.hass, DOMAIN)
+            manager = LicenseManager(
+                self.hass,
+                key,
+                ha_data.instance_fingerprint(self.hass),
+                DEFAULT_LICENSE_SERVER,
+                plugin_version=str(integration.version or ""),
+            )
+            state = await manager.async_refresh(force=True)
+            if state.may_serve:
+                self._data[CONF_LICENSE_KEY] = key
+                return await self.async_step_dashboard()
+            if state.status == STATUS_OFFLINE:
+                errors["base"] = "cannot_connect"
+            else:
+                errors["base"] = "license_refused"
+                reason = state.message or "This key cannot be used."
 
         schema: dict[Any, Any] = {vol.Required(CONF_LICENSE_KEY): str}
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(schema),
-            description_placeholders={"docs": "https://github.com/dllfpp/ha-public-access"},
+            errors=errors,
+            description_placeholders={"trial_url": TRIAL_URL, "reason": reason},
         )
 
     async def async_step_dashboard(
