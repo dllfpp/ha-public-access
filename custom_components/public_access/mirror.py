@@ -34,6 +34,8 @@ from homeassistant.auth.models import RefreshToken, User
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
+from .sanitize import pin_default_panel, view_matches
+
 _LOGGER = logging.getLogger(__name__)
 
 STORAGE_VERSION = 1
@@ -112,6 +114,12 @@ ALLOWED_EVENT_TYPES: frozenset[str] = frozenset(
         "entity_registry_updated",
         "area_registry_updated",
     }
+)
+
+# Frontend preference stores. Forwarded, but any default_panel in them is
+# rewritten to the public path (see sanitize.pin_default_panel).
+FRONTEND_DATA_TYPES: frozenset[str] = frozenset(
+    {"frontend/get_user_data", "frontend/subscribe_user_data", "frontend/subscribe_system_data"}
 )
 
 # Answered with an empty, successful result rather than forwarded or refused.
@@ -229,6 +237,8 @@ class MirrorSession:
         self._statistics = statistic_ids
         self._templates = templates or set()
         self._types: dict[int, str] = {}
+        # Subscriptions answered locally and never forwarded (see handle()).
+        self._local_subscriptions: set[int] = set()
         self._loop = hass.loop
         self._error = error_message
         self._connection = ActiveConnection(
@@ -257,6 +267,11 @@ class MirrorSession:
             # Diagnostics: an error Home Assistant itself returned to a forwarded
             # message. These surface in the page as unhandled rejections.
             _LOGGER.debug("Mirror: HA answered %s with %s", kind, message.get("error"))
+        if kind in FRONTEND_DATA_TYPES:
+            # Results for get_*, events for subscribe_*: both carry the data.
+            pin_default_panel(message.get("result"), self._public_path)
+            pin_default_panel(message.get("event"), self._public_path)
+            return message
         if message.get("type") == "result" and isinstance(message.get("result"), (list, dict)):
             result = message["result"]
             if kind == "get_states":
@@ -321,18 +336,29 @@ class MirrorSession:
         return {self._public_path: panel(self._public_path), "lovelace": panel("lovelace")}
 
     def _one_view(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Publish exactly one view; the others are not even sent to the browser."""
+        """Publish exactly one view; the others are not even sent to the browser.
+
+        If the configured view is gone (renamed, deleted), publish nothing rather
+        than the first view: that one was never chosen and may be private."""
         views = [v for v in config.get("views", []) if isinstance(v, dict)]
-        chosen = None
-        for view in views:
-            if self._view_path is None or view.get("path") == self._view_path:
-                chosen = view
-                break
-        if chosen is None and views:
-            chosen = views[0]
+        chosen = next((v for v in views if view_matches(v, self._view_path)), None)
+        if chosen is None:
+            _LOGGER.warning(
+                "The published view %r is not in dashboard %r (views: %s); publishing nothing",
+                self._view_path,
+                self._dashboard,
+                ", ".join(str(v.get("path")) for v in views) or "none",
+            )
         return {**config, "views": [chosen] if chosen else []}
 
     # -- inbound (visitor -> Home Assistant) ----------------------------------
+
+    def _reply_ok(self, msg_id: int, result: Any = None) -> None:
+        self._loop.create_task(
+            self._ws.send_str(
+                json.dumps({"id": msg_id, "type": "result", "success": True, "result": result})
+            )
+        )
 
     def handle(self, msg: dict[str, Any]) -> None:
         kind = msg.get("type")
@@ -369,10 +395,16 @@ class MirrorSession:
 
         if kind == "subscribe_events":
             if msg.get("event_type", "*") not in ALLOWED_EVENT_TYPES:
-                self._loop.create_task(
-                    self._ws.send_str(json.dumps(self._error(msg_id, "unauthorized", "Read-only public view")))
-                )
+                # A subscription that simply never fires: the frontend listens
+                # for registry and service changes a viewer has no use for, and
+                # an error here only becomes an unhandled rejection in the page.
+                self._local_subscriptions.add(msg_id)
+                self._reply_ok(msg_id)
                 return
+        elif kind == "unsubscribe_events" and msg.get("subscription") in self._local_subscriptions:
+            self._local_subscriptions.discard(msg.get("subscription"))
+            self._reply_ok(msg_id)
+            return
         elif kind == "subscribe_entities" and self._entities is not None:
             msg = {**msg, "entity_ids": sorted(self._entities)}
         elif kind in ("history/history_during_period", "history/stream"):

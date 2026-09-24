@@ -232,6 +232,39 @@ def _collect_ids(card: dict[str, Any], entities: set[str], statistics: set[str])
             _collect_ids(nested, entities, statistics)
 
 
+def view_matches(view: dict[str, Any], view_path: str | None) -> bool:
+    """Is this the view the owner chose to publish?
+
+    The option is always text, but a view path written in YAML as a bare number
+    (``path: 123456``) arrives as an int, so both sides are compared as text. A
+    view without a path never matches a configured one.
+    """
+    if view_path is None:
+        return True
+    path = view.get("path")
+    return path is not None and str(path) == str(view_path)
+
+
+def pin_default_panel(data: Any, public_path: str) -> Any:
+    """Point every ``default_panel`` in frontend user/system data at the public path.
+
+    The owner's default dashboard (Settings -> Dashboards) reaches the visitor
+    through the frontend's user and system data. For the visitor that panel does
+    not exist, and the frontend stops on its loading screen trying to open it;
+    its name is also nothing a visitor needs to learn.
+    """
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key == "default_panel":
+                data[key] = public_path
+            else:
+                pin_default_panel(value, public_path)
+    elif isinstance(data, list):
+        for item in data:
+            pin_default_panel(item, public_path)
+    return data
+
+
 def sanitize_dashboard(
     config: dict[str, Any], view_path: str | None = None
 ) -> SanitizedDashboard:
@@ -249,8 +282,7 @@ def sanitize_dashboard(
     for view in views:
         if not isinstance(view, dict):
             continue
-        matches = view_path is None or view.get("path") == view_path
-        if chosen is None and matches:
+        if chosen is None and view_matches(view, view_path):
             chosen = view
         else:
             report.views_dropped.append(str(view.get("path") or view.get("title") or "?"))

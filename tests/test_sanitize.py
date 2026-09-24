@@ -182,3 +182,36 @@ def test_empty_or_broken_config_is_safe():
         result = sanitize.sanitize_dashboard(config, None)
         assert result.cards == []
         assert result.entity_ids == set()
+
+
+def test_a_numeric_view_path_still_matches():
+    """`path: 123456` in YAML arrives as an int; the option is text."""
+    config = {
+        "views": [
+            {"path": "default", "cards": [{"type": "markdown", "content": "private"}]},
+            {"path": 123456, "cards": [{"type": "markdown", "content": "public"}]},
+        ]
+    }
+    result = sanitize.sanitize_dashboard(config, "123456")
+    assert [card["content"] for card in result.cards] == ["public"]
+    assert sanitize.view_matches({"path": 123456}, "123456")
+    assert not sanitize.view_matches({"title": "no path"}, "123456")
+    assert sanitize.view_matches({"title": "no path"}, None)
+
+
+def test_a_missing_view_publishes_nothing():
+    """Never fall back to another view: it was not chosen and may be private."""
+    config = {"views": [{"path": "default", "cards": [{"type": "markdown", "content": "private"}]}]}
+    result = sanitize.sanitize_dashboard(config, "gone")
+    assert result.cards == []
+
+
+def test_the_owner_default_panel_never_reaches_the_visitor():
+    """HA 2026.8+: a system default dashboard made the mirror hang on "Loading"."""
+    event = {"value": {"default_panel": "dashboard-tablet"}}
+    assert sanitize.pin_default_panel(event, "public") == {"value": {"default_panel": "public"}}
+    nested = {"core": {"default_panel": "dashboard-tablet"}, "sidebar": {"panelOrder": ["x"]}}
+    sanitize.pin_default_panel(nested, "public")
+    assert nested["core"]["default_panel"] == "public"
+    assert nested["sidebar"] == {"panelOrder": ["x"]}
+    assert sanitize.pin_default_panel(None, "public") is None

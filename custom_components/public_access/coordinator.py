@@ -26,7 +26,7 @@ from .const import (
     DEFAULT_CACHE_SECONDS,
 )
 from .license import LicenseManager, LicenseState
-from .sanitize import SanitizedDashboard, sanitize_dashboard, uses_energy_cards
+from .sanitize import SanitizedDashboard, sanitize_dashboard, uses_energy_cards, view_matches
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -254,7 +254,7 @@ class PublicDashboardCoordinator:
         view_path = self.options.get(CONF_VIEW_PATH) or None
         chosen = None
         for view in config.get("views", []) or []:
-            if isinstance(view, dict) and (view_path is None or view.get("path") == view_path):
+            if isinstance(view, dict) and view_matches(view, view_path):
                 chosen = view
                 break
         entities, statistics = _referenced_ids(chosen or {})
@@ -290,7 +290,7 @@ class PublicDashboardCoordinator:
                     walk(item)
 
         for view in config.get("views", []) or []:
-            if isinstance(view, dict) and (view_path is None or view.get("path") == view_path):
+            if isinstance(view, dict) and view_matches(view, view_path):
                 walk(view)
                 break
         return found
