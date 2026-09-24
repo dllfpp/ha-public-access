@@ -33,7 +33,6 @@ from .const import (
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
     CONF_LICENSE_KEY,
-    CONF_LICENSE_SERVER,
     CONF_MODE,
     CONF_SNAPSHOT_TTL,
     CONF_NOINDEX,
@@ -41,7 +40,6 @@ from .const import (
     CONF_SHOW_DEVICES,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
-    DEFAULT_LICENSE_SERVER,
     DEFAULT_MODE,
     DEFAULT_NOINDEX,
     DEFAULT_PUBLIC_PATH,
@@ -85,15 +83,9 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data[CONF_LICENSE_KEY] = user_input[CONF_LICENSE_KEY].strip()
-            self._data[CONF_LICENSE_SERVER] = (
-                user_input.get(CONF_LICENSE_SERVER) or DEFAULT_LICENSE_SERVER
-            ).strip().rstrip("/")
             return await self.async_step_dashboard()
 
         schema: dict[Any, Any] = {vol.Required(CONF_LICENSE_KEY): str}
-        if self.show_advanced_options:
-            # Only useful for development and self-hosted licence servers.
-            schema[vol.Optional(CONF_LICENSE_SERVER, default=DEFAULT_LICENSE_SERVER)] = str
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(schema),

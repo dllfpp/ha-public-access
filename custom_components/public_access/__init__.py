@@ -18,7 +18,6 @@ from homeassistant.loader import async_get_integration
 from . import assets, data as ha_data, payload
 from .const import (
     CONF_LICENSE_KEY,
-    CONF_LICENSE_SERVER,
     CONF_PUBLIC_PATH,
     DEFAULT_LICENSE_SERVER,
     DOMAIN,
@@ -62,9 +61,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     integration = await async_get_integration(hass, DOMAIN)
     fingerprint = ha_data.instance_fingerprint(hass)
-    server_url = {**entry.data, **entry.options}.get(
-        CONF_LICENSE_SERVER, DEFAULT_LICENSE_SERVER
-    )
+    # Always the production server: an older entry may still carry the
+    # placeholder the 0.1 config flow saved, and nobody needs to change it.
+    server_url = DEFAULT_LICENSE_SERVER
     licence = LicenseManager(
         hass,
         entry.data.get(CONF_LICENSE_KEY, ""),
