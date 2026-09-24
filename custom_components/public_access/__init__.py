@@ -64,21 +64,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Always the production server: an older entry may still carry the
     # placeholder the 0.1 config flow saved, and nobody needs to change it.
     server_url = DEFAULT_LICENSE_SERVER
-    licence = LicenseManager(
+    license = LicenseManager(
         hass,
         entry.data.get(CONF_LICENSE_KEY, ""),
         fingerprint,
         server_url,
         plugin_version=str(integration.version or ""),
     )
-    await licence.async_load()
-    if not licence.state.may_serve:
+    await license.async_load()
+    if not license.state.may_serve:
         _LOGGER.warning(
             "Public Access is configured but not serving: %s",
-            licence.state.message or licence.state.status,
+            license.state.message or license.state.status,
         )
 
-    coordinator = PublicDashboardCoordinator(hass, entry, licence)
+    coordinator = PublicDashboardCoordinator(hass, entry, license)
     domain_data[entry.entry_id] = {DATA_COORDINATOR: coordinator}
 
     async def _sync_payload() -> None:
@@ -87,8 +87,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         Failure is not fatal: whatever renderer is already installed keeps
         serving, and the bundled fallback keeps the page working regardless.
         """
-        wanted = licence.payload_version
-        if not wanted or not licence.state.may_serve:
+        wanted = license.payload_version
+        if not wanted or not license.state.may_serve:
             return
         if wanted == assets.installed_version():
             return
@@ -159,7 +159,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """A repair notice for the owner while the trial or subscription is
         about to end, or has ended and the page is on the grace period. It is
         the one place the owner learns this inside Home Assistant."""
-        state = licence.state
+        state = license.state
         ends = state.subscription_ends_at
         days_left = None if not ends else int((ends - time.time()) // 86400)
         ending_soon = days_left is not None and days_left <= 3
@@ -183,27 +183,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _update_subscription_notice()
 
-    async def _refresh_licence(_now) -> None:
+    async def _refresh_license(_now) -> None:
         """Re-check the subscription. A failure here is not fatal: the cached
         entitlement carries the page through until it expires, and then through
         the grace period."""
-        await licence.async_refresh()
+        await license.async_refresh()
         _update_subscription_notice()
         await _sync_payload()
 
     entry.async_on_unload(
         async_track_time_interval(
-            hass, _refresh_licence, timedelta(hours=LICENSE_REFRESH_HOURS)
+            hass, _refresh_license, timedelta(hours=LICENSE_REFRESH_HOURS)
         )
     )
 
     async def _handle_refresh(_call: ServiceCall) -> None:
         """Re-check the subscription now.
 
-        Without this, someone who has just paid, or just had a licence released,
+        Without this, someone who has just paid, or just had a license released,
         waits up to half a day for the page to come back.
         """
-        await licence.async_refresh(force=True)
+        await license.async_refresh(force=True)
         _update_subscription_notice()
         await _sync_payload()
         coordinator.invalidate()

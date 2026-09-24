@@ -1,6 +1,6 @@
 """Downloading and installing the licensed renderer payload.
 
-The payload is a signed archive served by the licence server. Its signature is
+The payload is a signed archive served by the license server. Its signature is
 verified against the same pinned public key used for entitlements **before the
 archive is opened**, so neither a compromised proxy nor a tampered mirror can put
 code on a customer's public page.
@@ -120,7 +120,7 @@ async def async_install(
         return False
     if not signature:
         _LOGGER.error(
-            "The licence server served a renderer payload without a signature; "
+            "The license server served a renderer payload without a signature; "
             "refusing it"
         )
         return False

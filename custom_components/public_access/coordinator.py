@@ -36,11 +36,11 @@ class PublicDashboardCoordinator:
     """Owns the sanitized view of one dashboard plus its cached payloads."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, licence: LicenseManager
+        self, hass: HomeAssistant, entry: ConfigEntry, license: LicenseManager
     ) -> None:
         self.hass = hass
         self.entry = entry
-        self._licence = licence
+        self._license = license
         self._sanitized: SanitizedDashboard | None = None
         self._cache: dict[str, tuple[float, Any]] = {}
         # Cleared on unload: the route cannot be unregistered, so the view checks
@@ -55,7 +55,7 @@ class PublicDashboardCoordinator:
 
     @property
     def license_state(self) -> LicenseState:
-        return self._licence.state
+        return self._license.state
 
     @property
     def _ttl(self) -> float:
@@ -311,7 +311,7 @@ class PublicDashboardCoordinator:
             "license": self.license_state.as_dict(),
             "renderer": {
                 "installed": assets.installed_version(),
-                "offered": self._licence.payload_version,
+                "offered": self._license.payload_version,
             },
         }
 

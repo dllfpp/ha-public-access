@@ -58,7 +58,7 @@
   "issues": {
     "subscription_ending": {
       "title": "Public Access: your subscription needs attention",
-      "description": "Status: {status}. The trial or paid period ends in {days} day(s); after that the public page shows an unavailable notice. (A grace period applies only while the licence server is unreachable.) Subscribe or renew at {url}"
+      "description": "Status: {status}. The trial or paid period ends in {days} day(s); after that the public page shows an unavailable notice. (A grace period applies only while the license server is unreachable.) Subscribe or renew at {url}"
     },
     "restart_required": {
       "title": "Restart to finish moving the public dashboard",

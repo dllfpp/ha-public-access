@@ -66,7 +66,7 @@ def validate_public_path(hass: Any, path: str) -> str | None:
 
 
 class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Walk the owner through licence, dashboard and public path."""
+    """Walk the owner through license, dashboard and public path."""
 
     VERSION = 1
 
@@ -77,7 +77,7 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Collect the licence key."""
+        """Collect the license key."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
 

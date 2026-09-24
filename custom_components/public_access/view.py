@@ -6,7 +6,7 @@ Design rules enforced here:
 * The client never names an entity, a statistic or a date range. It may only pick a
   period from a closed enum; ids come from the sanitized dashboard and the energy
   preferences, resolved server-side.
-* Nothing is served unless the integration is enabled and the licence may serve.
+* Nothing is served unless the integration is enabled and the license may serve.
 * `X-Frame-Options: SAMEORIGIN` is applied by Home Assistant's own middleware after
   this handler returns and cannot be overridden from here, so embedding the page in
   another site requires a header rewrite at the reverse proxy. CSP, X-Robots-Tag and
@@ -161,10 +161,10 @@ class PublicDashboardView(HomeAssistantView):
             response.headers["Retry-After"] = "60"
             return response
 
-        licence = self._coordinator.license_state
-        if not licence.may_serve:
+        license = self._coordinator.license_state
+        if not license.may_serve:
             return self._unavailable(
-                licence.message or "This public dashboard is currently unavailable."
+                license.message or "This public dashboard is currently unavailable."
             )
 
         route = extra.strip("/")

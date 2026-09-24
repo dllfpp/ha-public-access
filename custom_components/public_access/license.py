@@ -1,11 +1,11 @@
 """Subscription validation.
 
-The entitlement is an Ed25519-signed blob issued by the licence server and verified
-here **offline** against a pinned public key, so a licence-server outage can never
+The entitlement is an Ed25519-signed blob issued by the license server and verified
+here **offline** against a pinned public key, so a license-server outage can never
 take down a customer's public page: a cached entitlement keeps working until it
 expires, and then for a grace period on top.
 
-Nothing about the customer's home is sent: the licence key, a salted hash of the
+Nothing about the customer's home is sent: the license key, a salted hash of the
 Home Assistant instance id, and the two version numbers. No dashboard data, no
 entity names, nothing about what is published.
 """
@@ -31,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_VERSION = 1
 STORAGE_KEY = "public_access.license"
 
-# The licence server's Ed25519 public key. Entitlements are verified against this
+# The license server's Ed25519 public key. Entitlements are verified against this
 # without contacting anyone, which is what makes the grace period possible.
 ISSUER_PUBLIC_KEY_B64: str = "VkikGmFVRvr2_r6Y--EWPdsIzy2k7Eiaq6XaYHgstXg"
 
@@ -56,7 +56,7 @@ SERVING_STATUSES = frozenset(
 
 @dataclass
 class LicenseState:
-    """Everything the rest of the integration needs to know about the licence."""
+    """Everything the rest of the integration needs to know about the license."""
 
     status: str = STATUS_UNLICENSED
     plan: str | None = None
@@ -64,7 +64,7 @@ class LicenseState:
     features: set[str] = field(default_factory=set)
     message: str | None = None
     last_check: float | None = None
-    # From the licence server: when the trial or paid period ends, and where
+    # From the license server: when the trial or paid period ends, and where
     # to subscribe. Drives the owner-facing "trial ending" repair notice.
     subscription_ends_at: float | None = None
     checkout_url: str | None = None
@@ -131,7 +131,7 @@ def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseStat
     if payload.get("inst") not in (None, fingerprint):
         return LicenseState(
             status=STATUS_INVALID,
-            message="This licence is bound to a different Home Assistant instance.",
+            message="This license is bound to a different Home Assistant instance.",
         )
 
     expires_at = float(payload.get("exp") or 0)
@@ -153,7 +153,7 @@ def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseStat
             plan=plan,
             expires_at=expires_at,
             features=features,
-            message="Could not reach the licence server; serving on the grace period.",
+            message="Could not reach the license server; serving on the grace period.",
         )
     if status not in SERVING_STATUSES:
         return LicenseState(
@@ -166,7 +166,7 @@ def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseStat
 
 
 class LicenseManager:
-    """Holds the current licence state and knows how to refresh it."""
+    """Holds the current license state and knows how to refresh it."""
 
     def __init__(
         self,
@@ -205,21 +205,21 @@ class LicenseManager:
         return self.state
 
     async def async_refresh(self, force: bool = False) -> LicenseState:
-        """Contact the licence server if due, and apply whatever it says."""
+        """Contact the license server if due, and apply whatever it says."""
         async with self._lock:
             if self._key.startswith("DEV-"):
                 self.state = LicenseState(
                     status=STATUS_ACTIVE,
                     plan="development",
                     features={"energy", "generic-cards"},
-                    message="Development licence: no licence server contacted.",
+                    message="Development license: no license server contacted.",
                     last_check=time.time(),
                 )
                 return self.state
 
             if not self._key:
                 self.state = LicenseState(
-                    status=STATUS_UNLICENSED, message="No licence key configured."
+                    status=STATUS_UNLICENSED, message="No license key configured."
                 )
                 return self.state
 
@@ -238,7 +238,7 @@ class LicenseManager:
                 await self._store.async_save(self._cached)
             except Exception as error:  # noqa: BLE001 - network, DNS, timeouts
                 _LOGGER.warning(
-                    "Could not reach the licence server (%s); "
+                    "Could not reach the license server (%s); "
                     "continuing on the cached entitlement",
                     error,
                 )
@@ -246,7 +246,7 @@ class LicenseManager:
                     self.state = LicenseState(
                         status=STATUS_OFFLINE,
                         message=(
-                            "Could not reach the licence server and there is no "
+                            "Could not reach the license server and there is no "
                             "cached entitlement yet."
                         ),
                     )
@@ -267,7 +267,7 @@ class LicenseManager:
             url, json=body, timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
         ) as response:
             if response.status == 403:
-                detail = "This licence is not valid."
+                detail = "This license is not valid."
                 try:
                     detail = (await response.json()).get("detail", detail)
                 except Exception:  # noqa: BLE001
@@ -279,7 +279,7 @@ class LicenseManager:
         token = data.get("entitlement", "")
         payload = verify_entitlement(token, ISSUER_PUBLIC_KEY_B64)
         if payload is None:
-            raise RuntimeError("the licence server returned an entitlement we cannot verify")
+            raise RuntimeError("the license server returned an entitlement we cannot verify")
 
         self.state = state_from_payload(payload, self._fingerprint)
         self.state.last_check = time.time()
@@ -296,12 +296,12 @@ class LicenseManager:
         }
         await self._store.async_save(self._cached)
         _LOGGER.info(
-            "Licence check succeeded: %s (%s)", self.state.status, self.state.plan
+            "License check succeeded: %s (%s)", self.state.status, self.state.plan
         )
 
 
 class _LicenseRefused(Exception):
-    """The server refused this licence; it is not a transient failure."""
+    """The server refused this license; it is not a transient failure."""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)

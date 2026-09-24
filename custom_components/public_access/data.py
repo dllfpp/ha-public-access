@@ -298,7 +298,7 @@ def entity_states(hass: HomeAssistant, entity_ids: set[str]) -> list[dict[str, A
 
 
 def instance_fingerprint(hass: HomeAssistant) -> str:
-    """Stable, non-identifying instance id used for licence binding."""
+    """Stable, non-identifying instance id used for license binding."""
     import hashlib
 
     raw = str(hass.data.get("core.uuid") or "unknown")

@@ -23,9 +23,9 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # The license check requires an OSI-approved licence. This project is
+          # The license check requires an OSI-approved license. This project is
           # deliberately source-available (PolyForm Shield 1.0.0), which no OSI
-          # licence can express, so that check can never pass and is skipped.
+          # license can express, so that check can never pass and is skipped.
           # Distribution is via HACS custom repository, which runs no validation;
           # every other check here still has to pass.
           ignore: license

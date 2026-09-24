@@ -109,5 +109,5 @@ PERIODS: Final[dict[str, tuple[str, int]]] = {
     "year": ("month", 366),
 }
 
-# Service exposed so support can tell a customer "reload the licence now".
+# Service exposed so support can tell a customer "reload the license now".
 SERVICE_REFRESH_LICENSE: Final = "refresh_license"
