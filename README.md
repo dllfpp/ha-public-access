@@ -199,6 +199,13 @@ default; set the companion's `period` option to `week`, `month` or `year` to pub
 instead. The header, the view tabs and the sidebar are hidden, so the names of your other views are
 not revealed.
 
+**Lay the view out for the photograph.** The capture is 1100 px wide by default, and a wider capture
+does not give cards more room: Home Assistant's masonry layout answers a wider viewport by adding a
+column, so every card gets narrower. What works is a **Sections** view — set `max_columns: 2`, give
+the energy graphs `column_span: 2` and `grid_options: {columns: full}` — which puts the charts at full
+width, keeps the Sankey's labels and the sources table's cost column readable, and photographs into a
+single tall image.
+
 ---
 
 ## Configuration
