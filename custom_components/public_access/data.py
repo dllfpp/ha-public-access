@@ -160,6 +160,26 @@ def energy_statistic_ids(prefs: dict[str, Any] | None) -> set[str]:
     return ids
 
 
+def period_start(period_name: str) -> Any:
+    """The start of the named period, the way Home Assistant's energy dashboard
+    counts it: calendar periods in the instance's timezone, not rolling windows.
+
+    "month" is the first of this month, not the last thirty days — otherwise
+    the live page and a photograph of the real dashboard would show different
+    totals for what claims to be the same thing.
+    """
+    today = dt_util.start_of_local_day()
+    if period_name == "day":
+        return today
+    if period_name == "week":
+        return today - timedelta(days=today.weekday())
+    if period_name == "month":
+        return today.replace(day=1)
+    if period_name == "year":
+        return today.replace(month=1, day=1)
+    return today
+
+
 async def async_statistics(
     hass: HomeAssistant,
     statistic_ids: set[str],
@@ -172,10 +192,21 @@ async def async_statistics(
     """
     if not statistic_ids or period_name not in PERIODS:
         return {}
-    recorder_period, days = PERIODS[period_name]
-    start = dt_util.utcnow() - timedelta(days=days)
+    recorder_period, _ = PERIODS[period_name]
+    start = period_start(period_name)
     if earliest is not None and earliest > start:
         start = earliest
+    # Statistics are cumulative sums, and the page draws each bucket as the
+    # difference from the previous one. Fetching from one bucket *before* the
+    # period gives the first bucket its baseline; without it the first day of the
+    # month simply vanishes from the total. Home Assistant's frontend does the
+    # same.
+    if recorder_period == "hour":
+        start -= timedelta(hours=1)
+    elif recorder_period == "day":
+        start -= timedelta(days=1)
+    else:
+        start = (start - timedelta(days=1)).replace(day=1)
 
     try:
         from homeassistant.components.recorder import get_instance

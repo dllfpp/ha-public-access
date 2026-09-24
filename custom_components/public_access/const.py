@@ -91,13 +91,15 @@ RESERVED_PATHS: Final[frozenset[str]] = frozenset(
 )
 
 # Statistics periods the public API accepts. The client may only name one of
-# these; it never supplies statistic ids or raw date ranges.
+# these; it never supplies statistic ids or raw date ranges. They are calendar
+# periods, as in Home Assistant's own energy dashboard (see data.period_start);
+# the second value is the recorder bucket size.
 PERIODS: Final[dict[str, tuple[str, int]]] = {
-    # name: (recorder period, days of history)
+    # name: (recorder period, nominal days — informational only)
     "day": ("hour", 1),
     "week": ("day", 7),
-    "month": ("day", 30),
-    "year": ("month", 365),
+    "month": ("day", 31),
+    "year": ("month", 366),
 }
 
 # Service exposed so support can tell a customer "reload the licence now".
