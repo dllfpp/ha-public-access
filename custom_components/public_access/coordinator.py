@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from . import data as ha_data
+from . import assets, data as ha_data
 from .const import (
     CONF_CACHE_SECONDS,
     CONF_DASHBOARD,
@@ -252,4 +252,8 @@ class PublicDashboardCoordinator:
             "statistic_allowlist": sorted(await self.async_allowed_statistic_ids()),
             "sanitizer_report": sanitized.report.as_dict(),
             "license": self.license_state.as_dict(),
+            "renderer": {
+                "installed": assets.installed_version(),
+                "offered": self._licence.payload_version,
+            },
         }

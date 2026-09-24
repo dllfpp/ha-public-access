@@ -14,7 +14,7 @@ from datetime import timedelta
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.loader import async_get_integration
 
-from . import assets, data as ha_data
+from . import assets, data as ha_data, payload
 from .const import (
     CONF_LICENSE_KEY,
     CONF_LICENSE_SERVER,
@@ -55,11 +55,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await assets.async_preload(hass)
 
     integration = await async_get_integration(hass, DOMAIN)
+    fingerprint = ha_data.instance_fingerprint(hass)
+    server_url = {**entry.data, **entry.options}.get(
+        CONF_LICENSE_SERVER, DEFAULT_LICENSE_SERVER
+    )
     licence = LicenseManager(
         hass,
         entry.data.get(CONF_LICENSE_KEY, ""),
-        ha_data.instance_fingerprint(hass),
-        {**entry.data, **entry.options}.get(CONF_LICENSE_SERVER, DEFAULT_LICENSE_SERVER),
+        fingerprint,
+        server_url,
         plugin_version=str(integration.version or ""),
     )
     await licence.async_load()
@@ -71,6 +75,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = PublicDashboardCoordinator(hass, entry, licence)
     domain_data[entry.entry_id] = {DATA_COORDINATOR: coordinator}
+
+    async def _sync_payload() -> None:
+        """Fetch the licensed renderer if the server offers a newer one.
+
+        Failure is not fatal: whatever renderer is already installed keeps
+        serving, and the bundled fallback keeps the page working regardless.
+        """
+        wanted = licence.payload_version
+        if not wanted or not licence.state.may_serve:
+            return
+        if wanted == assets.installed_version():
+            return
+        await payload.async_install(
+            hass,
+            server_url=server_url,
+            license_key=entry.data.get(CONF_LICENSE_KEY, ""),
+            fingerprint=fingerprint,
+            version=wanted,
+        )
+
+    await _sync_payload()
 
     public_path = {**entry.data, **entry.options}.get(CONF_PUBLIC_PATH)
     # path -> (entry_id, view). The view is kept so a path claimed earlier in this
@@ -130,6 +155,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entitlement carries the page through until it expires, and then through
         the grace period."""
         await licence.async_refresh()
+        await _sync_payload()
 
     entry.async_on_unload(
         async_track_time_interval(
@@ -144,6 +170,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         waits up to half a day for the page to come back.
         """
         await licence.async_refresh(force=True)
+        await _sync_payload()
         coordinator.invalidate()
 
     hass.services.async_register(DOMAIN, SERVICE_REFRESH_LICENSE, _handle_refresh)
