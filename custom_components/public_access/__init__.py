@@ -101,6 +101,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             version=wanted,
         )
 
+    if assets.mirror_core() is None and license.state.may_serve:
+        # Mirror mode needs the glue from a recent payload. The payload version
+        # on record may predate it (an update from 0.2), so ask the server now
+        # rather than at the next scheduled check, hours away.
+        await license.async_refresh(force=True)
     await _sync_payload()
 
     public_path = {**entry.data, **entry.options}.get(CONF_PUBLIC_PATH)

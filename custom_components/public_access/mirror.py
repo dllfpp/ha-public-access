@@ -156,53 +156,10 @@ async def async_get_viewer(hass: HomeAssistant) -> tuple[User, RefreshToken]:
     return user, token
 
 
-def bootstrap_script(public_path: str) -> str:
-    """Runs before the frontend: fake credentials, and a websocket that comes here."""
-    ws_path = f"/{public_path}/ws"
-    return (
-        "<script>(function(){"
-        "var origin=location.origin;"
-        "try{localStorage.setItem('hassTokens',JSON.stringify({access_token:'public',"
-        "token_type:'Bearer',expires_in:1800,hassUrl:origin,clientId:origin+'/',"
-        "expires:Date.now()+315360000000,refresh_token:'public'}));"
-        "localStorage.setItem('dockedSidebar','\"always_hidden\"');"
-        f"localStorage.setItem('defaultPanel',JSON.stringify('{public_path}'));}}catch(e){{}}"
-        "var W=window.WebSocket;"
-        "window.WebSocket=function(u,p){try{var x=new URL(u,origin);"
-        f"if(x.pathname==='/api/websocket'){{x.pathname='{ws_path}';u=x.toString();}}}}catch(e){{}}"
-        "return p===undefined?new W(u):new W(u,p);};"
-        "window.WebSocket.prototype=W.prototype;"
-        "var F=window.fetch;"
-        "window.fetch=function(i,o){var u=typeof i==='string'?i:(i&&i.url)||'';"
-        "if(u.indexOf('/auth/token')>=0){return Promise.resolve(new Response("
-        "JSON.stringify({access_token:'public',expires_in:1800,token_type:'Bearer'}),"
-        "{status:200,headers:{'Content-Type':'application/json'}}));}"
-        "return F.apply(this,arguments);};"
-        "})();</script>"
-    )
-
-
-GLASS_SCRIPT = r"""
-<script>(function(){
-  // Cosmetic layer only: security is enforced server-side. Hides the header
-  // and sidebar so the page is the view and nothing else, and blocks the edit
-  // and settings dialogs from ever opening.
-  function deep(sel, root){root=root||document;var st=[root];while(st.length){var n=st.pop();
-    var f=n.querySelector&&n.querySelector(sel);if(f)return f;
-    var all=n.querySelectorAll?n.querySelectorAll('*'):[];for(var i=0;i<all.length;i++)if(all[i].shadowRoot)st.push(all[i].shadowRoot);}return null;}
-  function hide(e){if(e)e.style.setProperty('display','none','important');}
-  function apply(){
-    hide(deep('ha-sidebar'));
-    var root=deep('hui-root');var sh=root&&root.shadowRoot;
-    if(sh){hide(sh.querySelector('.header'));hide(sh.querySelector('.toolbar'));
-      var v=sh.querySelector('#view');if(v){v.style.setProperty('padding-top','0','important');v.style.setProperty('margin-top','0','important');}}
-  }
-  var n=0;var t=setInterval(function(){apply();if(++n>120)clearInterval(t);},250);
-  window.addEventListener('show-dialog',function(e){var d=e.detail&&e.detail.dialogTag||'';
-    if(/edit|config|settings|search|quick-bar|voice|assist/i.test(d)){e.stopImmediatePropagation();}},true);
-  document.addEventListener('keydown',function(e){if(e.key==='e'||e.key==='c'||e.key==='a'||e.key==='m')e.stopImmediatePropagation();},true);
-})();</script>
-"""
+# The page scripts and the frontend glue (the "lovelace" alias panel, silent
+# subscriptions) come from the licensed renderer payload: see
+# assets.mirror_core(). Everything that decides what a visitor may reach stays
+# here, in the open, and runs before that glue sees a message.
 
 
 class MirrorSession:
@@ -222,6 +179,7 @@ class MirrorSession:
         entity_ids: set[str] | None,
         statistic_ids: set[str] | None,
         templates: set[str] | None = None,
+        core: Any,
     ) -> None:
         from homeassistant.components.websocket_api.connection import ActiveConnection
         from homeassistant.components.websocket_api.messages import (
@@ -237,8 +195,8 @@ class MirrorSession:
         self._statistics = statistic_ids
         self._templates = templates or set()
         self._types: dict[int, str] = {}
-        # Subscriptions answered locally and never forwarded (see handle()).
-        self._local_subscriptions: set[int] = set()
+        # The licensed glue, called only after this class's own filters.
+        self._core = core.Session(public_path=public_path, dashboard=dashboard)
         self._loop = hass.loop
         self._error = error_message
         self._connection = ActiveConnection(
@@ -258,6 +216,8 @@ class MirrorSession:
             message = decoded
         message = self._filter_outbound(message)
         if message is not None:
+            # Filters first, glue second: the glue only adapts what may be seen.
+            message = self._core.outbound(self._types.get(message.get("id"), ""), message)
             self._loop.create_task(self._ws.send_str(json.dumps(message, default=str)))
 
     def _filter_outbound(self, message: dict[str, Any]) -> dict[str, Any] | None:
@@ -330,10 +290,7 @@ class MirrorSession:
                 "config_panel_domain": None,
             }
 
-        # The frontend also looks up its default panel by the fixed name
-        # "lovelace" while booting and crashes if it is missing, so that name
-        # is an alias of the same published dashboard.
-        return {self._public_path: panel(self._public_path), "lovelace": panel("lovelace")}
+        return {self._public_path: panel(self._public_path)}
 
     def _one_view(self, config: dict[str, Any]) -> dict[str, Any]:
         """Publish exactly one view; the others are not even sent to the browser.
@@ -393,18 +350,17 @@ class MirrorSession:
             )
             return
 
+        answered, result = self._core.local_answer(kind, msg)
+        if answered:
+            self._reply_ok(msg_id, result)
+            return
+
         if kind == "subscribe_events":
             if msg.get("event_type", "*") not in ALLOWED_EVENT_TYPES:
-                # A subscription that simply never fires: the frontend listens
-                # for registry and service changes a viewer has no use for, and
-                # an error here only becomes an unhandled rejection in the page.
-                self._local_subscriptions.add(msg_id)
-                self._reply_ok(msg_id)
+                # Never forwarded. How the frontend is told (an error, or a
+                # subscription that never fires) is the glue's business.
+                self._reply_ok(msg_id, self._core.silent_subscription(msg_id))
                 return
-        elif kind == "unsubscribe_events" and msg.get("subscription") in self._local_subscriptions:
-            self._local_subscriptions.discard(msg.get("subscription"))
-            self._reply_ok(msg_id)
-            return
         elif kind == "subscribe_entities" and self._entities is not None:
             msg = {**msg, "entity_ids": sorted(self._entities)}
         elif kind in ("history/history_during_period", "history/stream"):
@@ -427,7 +383,7 @@ class MirrorSession:
                 return
 
         self._types[msg_id] = kind
-        self._connection.async_handle(msg)
+        self._connection.async_handle(self._core.inbound(kind, msg))
 
     def close(self) -> None:
         self._connection.async_handle_close()
@@ -464,11 +420,20 @@ async def async_serve_websocket(
         return ws
     await ws.send_str(json.dumps({"type": "auth_ok", "ha_version": __version__}))
 
+    from . import assets
+
+    core = assets.mirror_core()
+    if core is None:
+        await ws.send_str(json.dumps({"type": "auth_invalid", "message": "Mirror mode is not available"}))
+        await ws.close()
+        return ws
+
     user, token = await async_get_viewer(hass)
     session = MirrorSession(
         hass, ws, user, token, request.remote,
         public_path=public_path, dashboard=dashboard, view_path=view_path,
         entity_ids=entity_ids, statistic_ids=statistic_ids, templates=templates,
+        core=core,
     )
     _connections += 1
     try:
@@ -489,9 +454,16 @@ async def async_serve_websocket(
     return ws
 
 
-async def async_render_page(hass: HomeAssistant, public_path: str) -> str:
-    """Home Assistant's own index page, with the bootstrap script in front."""
+async def async_render_page(hass: HomeAssistant, public_path: str) -> str | None:
+    """Home Assistant's own index page, with the licensed page scripts put in
+    place. None when the licensed mirror module is not installed."""
     from homeassistant.components import frontend
+
+    from . import assets
+
+    core = assets.mirror_core()
+    if core is None:
+        return None
 
     view = None
     for resource in hass.http.app.router.resources():
@@ -507,8 +479,4 @@ async def async_render_page(hass: HomeAssistant, public_path: str) -> str:
         extra_modules=hass.data[frontend.DATA_EXTRA_MODULE_URL].urls,
         extra_js_es5=hass.data[frontend.DATA_EXTRA_JS_URL_ES5].urls,
     )
-    head = html.find("<head>")
-    if head < 0:
-        return bootstrap_script(public_path) + html + GLASS_SCRIPT
-    insert = head + len("<head>")
-    return html[:insert] + bootstrap_script(public_path) + html[insert:] + GLASS_SCRIPT
+    return core.assemble_page(html, public_path)

@@ -90,7 +90,11 @@ Only the entities the published view actually shows are visible, and no password
 reaches the visitor's browser. **What is on the view is visible, though:** if the view shows a camera
 or a map, visitors see it — so build the public view on purpose.
 
-The code that enforces this is in this repository, so you can read it before trusting it.
+The code that enforces this is in this repository, so you can read it before trusting it. What
+makes Home Assistant's frontend work behind the glass, and has to follow each frontend release,
+arrives with your subscription in a package signed by us; the plugin checks the signature before
+using it, and runs it only after the checks above, so it can adapt what a visitor sees but never
+widen it.
 The [`tests/`](tests) folder holds the automated checks GitHub runs on every change and release —
 among them, that the integration contains no code able to write to Home Assistant. Home Assistant
 never downloads it: HACS installs only `custom_components/public_access`.

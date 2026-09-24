@@ -30,6 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 DOWNLOAD_TIMEOUT = 120
 MAX_PAYLOAD_BYTES = 12 * 1024 * 1024
 ENTRY_NAME = "app.js"
+# Mirror mode's frontend glue, licensed like the renderer and covered by the
+# same signature. Optional in the archive, so older payloads still install.
+MIRROR_CORE_NAME = "mirror_core.py"
 
 
 def verify_signature(blob: bytes, signature_b64: str) -> bool:
@@ -52,33 +55,49 @@ def verify_signature(blob: bytes, signature_b64: str) -> bool:
     return True
 
 
-def _extract(blob: bytes) -> str | None:
-    """Pull app.js out of the archive, refusing anything else.
+def _read_member(archive: tarfile.TarFile, name: str) -> str | None:
+    try:
+        member = archive.getmember(name)
+    except KeyError:
+        return None
+    if not member.isfile() or member.size > MAX_PAYLOAD_BYTES:
+        _LOGGER.error("Payload member %s is not a plain file", name)
+        return None
+    handle = archive.extractfile(member)
+    return handle.read().decode("utf-8") if handle is not None else None
 
-    Only one known member is read, by exact name, so a crafted archive cannot
-    write outside the cache directory or hand us something unexpected.
+
+def _extract(blob: bytes) -> dict[str, str] | None:
+    """Pull the known members out of the archive, refusing anything else.
+
+    Members are read by exact name, so a crafted archive cannot write outside
+    the cache directory or hand us something unexpected. app.js is required;
+    the mirror glue is optional.
     """
     try:
         with tarfile.open(fileobj=io.BytesIO(blob), mode="r:gz") as archive:
-            member = archive.getmember(ENTRY_NAME)
-            if not member.isfile() or member.size > MAX_PAYLOAD_BYTES:
-                _LOGGER.error("Payload member %s is not a plain file", ENTRY_NAME)
-                return None
-            handle = archive.extractfile(member)
-            if handle is None:
-                return None
-            return handle.read().decode("utf-8")
-    except (tarfile.TarError, KeyError, UnicodeDecodeError, OSError):
+            out = {name: text for name in (ENTRY_NAME, MIRROR_CORE_NAME)
+                   if (text := _read_member(archive, name))}
+    except (tarfile.TarError, UnicodeDecodeError, OSError):
         _LOGGER.exception("The renderer payload could not be read")
         return None
+    if ENTRY_NAME not in out:
+        _LOGGER.error("The renderer payload has no %s", ENTRY_NAME)
+        return None
+    return out
 
 
-def _write_cache(path: Path, text: str, version: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
-    (path.parent / "version.txt").write_text(version, encoding="utf-8")
+def _write_cache(directory: Path, files: dict[str, str], version: str) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    for name in (ENTRY_NAME, MIRROR_CORE_NAME):
+        path = directory / name
+        if name in files:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(files[name], encoding="utf-8")
+            tmp.replace(path)
+        else:
+            path.unlink(missing_ok=True)  # a payload without it must not keep an old one
+    (directory / "version.txt").write_text(version, encoding="utf-8")
 
 
 async def async_install(
@@ -127,12 +146,15 @@ async def async_install(
     if not verify_signature(blob, signature):
         return False
 
-    text = await hass.async_add_executor_job(_extract, blob)
-    if not text:
+    files = await hass.async_add_executor_job(_extract, blob)
+    if not files:
         return False
 
-    cache = Path(hass.config.path(".storage", "public_access", "payload", ENTRY_NAME))
-    await hass.async_add_executor_job(_write_cache, cache, text, version)
-    assets.set_payload(text, version)
-    _LOGGER.info("Installed renderer payload %s (%d bytes)", version, len(text))
+    directory = Path(hass.config.path(".storage", "public_access", "payload"))
+    await hass.async_add_executor_job(_write_cache, directory, files, version)
+    assets.set_payload(files[ENTRY_NAME], version)
+    await assets.async_load_mirror_core(hass)
+    _LOGGER.info(
+        "Installed renderer payload %s (%s)", version, ", ".join(sorted(files))
+    )
     return True

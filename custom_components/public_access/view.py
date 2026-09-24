@@ -229,6 +229,12 @@ class PublicDashboardView(HomeAssistantView):
         if route == "healthz":
             return self._json({"status": "ok", "path": self.public_path, "mode": MODE_MIRROR})
         html = await mirror.async_render_page(self.hass, self.public_path)
+        if html is None:
+            # The mirror's frontend glue arrives with the licensed renderer
+            # payload; until it is installed there is nothing to serve.
+            return self._unavailable(
+                "This dashboard is being prepared. Please try again in a few minutes."
+            )
         response = web.Response(text=html, content_type="text/html")
         # The frontend loads scripts from the same origin and inlines none of
         # ours except the bootstrap, so the policy stays tight but must allow
