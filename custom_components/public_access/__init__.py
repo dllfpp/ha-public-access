@@ -30,6 +30,7 @@ from .license import (
     STATUS_INVALID,
     STATUS_PAST_DUE,
     LicenseManager,
+    async_forget,
 )
 from .view import PublicDashboardView
 
@@ -228,3 +229,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if stored and (coordinator := stored.get(DATA_COORDINATOR)):
         coordinator.active = False
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """The integration was deleted: forget its cached entitlement too, so a new
+    entry starts by activating its own key instead of inheriting this one."""
+    await async_forget(hass)

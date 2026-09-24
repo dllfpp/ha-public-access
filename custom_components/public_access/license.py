@@ -126,6 +126,17 @@ def verify_entitlement(token: str, public_key_b64: str) -> dict[str, Any] | None
     return payload if isinstance(payload, dict) else None
 
 
+def cache_belongs_to(payload: dict[str, Any], license_key: str) -> bool:
+    """Was this entitlement issued for this key? Compared case-insensitively,
+    as the server normalises keys to upper case."""
+    return str(payload.get("sub") or "").strip().upper() == license_key.strip().upper()
+
+
+async def async_forget(hass: HomeAssistant) -> None:
+    """Delete the cached entitlement, when the integration is removed."""
+    await Store(hass, STORAGE_VERSION, STORAGE_KEY).async_remove()
+
+
 def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseState:
     """Turn a verified entitlement payload into a state, honouring the grace period."""
     if payload.get("inst") not in (None, fingerprint):
@@ -195,6 +206,14 @@ class LicenseManager:
         token = self._cached.get("entitlement")
         if isinstance(token, str):
             payload = verify_entitlement(token, ISSUER_PUBLIC_KEY_B64)
+            if payload and not cache_belongs_to(payload, self._key):
+                # Left over from another key (the integration was removed and
+                # added again with a new one). Trusting it would keep serving a
+                # key that may since have been revoked, and the new key would
+                # never be activated. Start from nothing: activate now.
+                _LOGGER.info("Discarding a cached entitlement issued for a different key")
+                self._cached = {}
+                payload = None
             if payload:
                 self.state = state_from_payload(payload, self._fingerprint)
                 self.state.last_check = self._cached.get("last_check")
