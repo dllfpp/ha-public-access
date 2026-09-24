@@ -56,6 +56,10 @@
     }
   },
   "issues": {
+    "subscription_ending": {
+      "title": "Public Access: your subscription needs attention",
+      "description": "Status: {status}. The trial or paid period ends in {days} day(s); after that the public page keeps working for a 14-day grace period, then shows an unavailable notice. Subscribe or renew at {url}"
+    },
     "restart_required": {
       "title": "Restart to finish moving the public dashboard",
       "description": "The public path changed to {new}, but {old} stays active until Home Assistant restarts, because a route cannot be removed at runtime."

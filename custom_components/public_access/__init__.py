@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
@@ -25,7 +26,12 @@ from .const import (
     SERVICE_REFRESH_LICENSE,
 )
 from .coordinator import PublicDashboardCoordinator
-from .license import LicenseManager
+from .license import (
+    STATUS_GRACE,
+    STATUS_INVALID,
+    STATUS_PAST_DUE,
+    LicenseManager,
+)
 from .view import PublicDashboardView
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,11 +156,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     entry.async_on_unload(entry.add_update_listener(_options_updated))
 
+    def _update_subscription_notice() -> None:
+        """A repair notice for the owner while the trial or subscription is
+        about to end, or has ended and the page is on the grace period. It is
+        the one place the owner learns this inside Home Assistant."""
+        state = licence.state
+        ends = state.subscription_ends_at
+        days_left = None if not ends else int((ends - time.time()) // 86400)
+        ending_soon = days_left is not None and days_left <= 3
+        on_grace = state.status in (STATUS_GRACE, STATUS_PAST_DUE)
+        if (ending_soon or on_grace) and state.status != STATUS_INVALID:
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                "subscription_ending",
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="subscription_ending",
+                translation_placeholders={
+                    "days": str(max(days_left or 0, 0)),
+                    "status": state.status,
+                    "url": state.checkout_url or "https://github.com/dllfpp/ha-public-access",
+                },
+            )
+        else:
+            ir.async_delete_issue(hass, DOMAIN, "subscription_ending")
+
+    _update_subscription_notice()
+
     async def _refresh_licence(_now) -> None:
         """Re-check the subscription. A failure here is not fatal: the cached
         entitlement carries the page through until it expires, and then through
         the grace period."""
         await licence.async_refresh()
+        _update_subscription_notice()
         await _sync_payload()
 
     entry.async_on_unload(
@@ -170,6 +205,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         waits up to half a day for the page to come back.
         """
         await licence.async_refresh(force=True)
+        _update_subscription_notice()
         await _sync_payload()
         coordinator.invalidate()
 

@@ -56,6 +56,10 @@
     }
   },
   "issues": {
+    "subscription_ending": {
+      "title": "Public Access: l'abbonamento richiede attenzione",
+      "description": "Stato: {status}. La prova o il periodo pagato termina tra {days} giorno/i; poi la pagina pubblica resta attiva per 14 giorni di tolleranza e infine mostra un avviso di non disponibilità. Abbonati o rinnova su {url}"
+    },
     "restart_required": {
       "title": "Riavvia per completare lo spostamento della dashboard pubblica",
       "description": "Il percorso pubblico è cambiato in {new}, ma {old} resta attivo fino al riavvio di Home Assistant, perché una rotta non può essere rimossa a runtime."

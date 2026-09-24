@@ -64,6 +64,10 @@ class LicenseState:
     features: set[str] = field(default_factory=set)
     message: str | None = None
     last_check: float | None = None
+    # From the licence server: when the trial or paid period ends, and where
+    # to subscribe. Drives the owner-facing "trial ending" repair notice.
+    subscription_ends_at: float | None = None
+    checkout_url: str | None = None
 
     @property
     def may_serve(self) -> bool:
@@ -194,6 +198,8 @@ class LicenseManager:
             if payload:
                 self.state = state_from_payload(payload, self._fingerprint)
                 self.state.last_check = self._cached.get("last_check")
+                self.state.subscription_ends_at = self._cached.get("subscription_ends_at")
+                self.state.checkout_url = self._cached.get("checkout_url")
         self.payload_version = self._cached.get("payload_version")
         await self.async_refresh()
         return self.state
@@ -277,12 +283,16 @@ class LicenseManager:
 
         self.state = state_from_payload(payload, self._fingerprint)
         self.state.last_check = time.time()
+        self.state.subscription_ends_at = data.get("subscription_ends_at")
+        self.state.checkout_url = data.get("checkout_url")
         self.payload_version = data.get("payload_version")
         self._cached = {
             "entitlement": token,
             "last_check": self.state.last_check,
             "activated": True,
             "payload_version": self.payload_version,
+            "subscription_ends_at": self.state.subscription_ends_at,
+            "checkout_url": self.state.checkout_url,
         }
         await self._store.async_save(self._cached)
         _LOGGER.info(
