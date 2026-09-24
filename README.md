@@ -176,6 +176,12 @@ Home Assistant and forwards only what a viewer may do:
 No real token exists in the browser. Every visitor is a live websocket on your instance, so the
 number of concurrent viewers is capped.
 
+**The glass stops doing, not seeing.** Like snapshot mode, mirror mode shows the view *as it is*:
+an `iframe` card, a camera, a map, a name — if it is on that view, the visitor sees it. The live
+mode's sanitizer does not apply here. The one deliberate exception is templates: the markdown card
+renders its text through Home Assistant's template engine, which can read any state, so only text
+that appears verbatim in the published view is ever rendered.
+
 **Why experimental.** The frontend's internals can change between Home Assistant releases; the
 intercept is deliberately tiny (the websocket URL and a fake token), but it is not something Home
 Assistant promises to keep stable. If a release breaks it, switch to live or snapshot mode until it
