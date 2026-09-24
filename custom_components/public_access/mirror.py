@@ -109,6 +109,12 @@ ALLOWED_EVENT_TYPES: frozenset[str] = frozenset(
     }
 )
 
+# Answered with an empty, successful result rather than forwarded or refused.
+QUIET_TYPES: dict[str, Any] = {
+    "persistent_notification/subscribe": None,
+    "repairs/list_issues": {"issues": []},
+}
+
 _connections = 0
 
 
@@ -146,7 +152,8 @@ def bootstrap_script(public_path: str) -> str:
         "try{localStorage.setItem('hassTokens',JSON.stringify({access_token:'public',"
         "token_type:'Bearer',expires_in:1800,hassUrl:origin,clientId:origin+'/',"
         "expires:Date.now()+315360000000,refresh_token:'public'}));"
-        "localStorage.setItem('dockedSidebar','\"always_hidden\"');}catch(e){}"
+        "localStorage.setItem('dockedSidebar','\"always_hidden\"');"
+        f"localStorage.setItem('defaultPanel',JSON.stringify('{public_path}'));}}catch(e){{}}"
         "var W=window.WebSocket;"
         "window.WebSocket=function(u,p){try{var x=new URL(u,origin);"
         f"if(x.pathname==='/api/websocket'){{x.pathname='{ws_path}';u=x.toString();}}}}catch(e){{}}"
@@ -285,17 +292,22 @@ class MirrorSession:
         the public path. The frontend then asks for lovelace/config with that
         url_path, which is rewritten back to the real dashboard."""
         source = panels.get(self._dashboard) or {}
-        return {
-            self._public_path: {
+
+        def panel(url_path: str) -> dict[str, Any]:
+            return {
                 "component_name": "lovelace",
                 "icon": source.get("icon"),
                 "title": source.get("title") or "Dashboard",
                 "config": {"mode": "storage"},
-                "url_path": self._public_path,
+                "url_path": url_path,
                 "require_admin": False,
                 "config_panel_domain": None,
             }
-        }
+
+        # The frontend also looks up its default panel by the fixed name
+        # "lovelace" while booting and crashes if it is missing, so that name
+        # is an alias of the same published dashboard.
+        return {self._public_path: panel(self._public_path), "lovelace": panel("lovelace")}
 
     def _one_view(self, config: dict[str, Any]) -> dict[str, Any]:
         """Publish exactly one view; the others are not even sent to the browser."""
@@ -314,6 +326,23 @@ class MirrorSession:
     def handle(self, msg: dict[str, Any]) -> None:
         kind = msg.get("type")
         msg_id = msg.get("id")
+
+        # Requests that must not be forwarded but where "nothing" is the honest
+        # answer for a viewer: no notifications, no repair issues, and the
+        # frontend's own error reports are simply dropped. Answering these with
+        # an error instead leaves unhandled rejections in the frontend.
+        if isinstance(msg_id, int) and (
+            kind in QUIET_TYPES
+            or (kind == "call_service" and msg.get("domain") == "system_log")
+        ):
+            result = QUIET_TYPES.get(kind)
+            self._loop.create_task(
+                self._ws.send_str(
+                    json.dumps({"id": msg_id, "type": "result", "success": True, "result": result})
+                )
+            )
+            return
+
         if not isinstance(msg_id, int) or kind not in ALLOWED_TYPES:
             self._loop.create_task(
                 self._ws.send_str(

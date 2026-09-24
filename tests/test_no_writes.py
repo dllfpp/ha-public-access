@@ -13,8 +13,9 @@ PACKAGE = Path(__file__).resolve().parents[1] / "custom_components" / "public_ac
 
 FORBIDDEN = (
     "async_call(",         # service calls
-    "call_service",
     "services.call",
+    # Not "call_service" bare: that is the websocket message *name*, which
+    # mirror.py must mention in order to refuse it.
     "async_set(",          # state writes ("async_setup" must not match)
     "states.async_set",
     "async_save(",         # store / config writes
