@@ -16,7 +16,7 @@
       },
       "path": {
         "title": "Choose the public address",
-        "description": "The dashboard will be readable at https://your-home-assistant/<path>, with no login. Use lowercase letters, digits and underscores only — no hyphen, so it can never collide with one of your dashboards.",
+        "description": "The dashboard will be readable at your Home Assistant address followed by this path, with no login. Use lowercase letters, digits and underscores only — no hyphen, so it can never collide with one of your dashboards.",
         "data": { "public_path": "Public path" }
       }
     },

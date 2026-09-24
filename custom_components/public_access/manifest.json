@@ -1,6 +1,7 @@
 {
   "domain": "public_access",
   "name": "Public Access",
+  "after_dependencies": ["energy"],
   "codeowners": ["@dllfpp"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "lovelace", "recorder"],

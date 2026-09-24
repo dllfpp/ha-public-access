@@ -16,7 +16,7 @@
       },
       "path": {
         "title": "Scegli l'indirizzo pubblico",
-        "description": "La dashboard sarà leggibile su https://tuo-home-assistant/<percorso>, senza login. Usa solo lettere minuscole, cifre e underscore — senza trattino, così non può mai entrare in conflitto con una tua dashboard.",
+        "description": "La dashboard sarà leggibile all'indirizzo del tuo Home Assistant seguito da questo percorso, senza login. Usa solo lettere minuscole, cifre e underscore — senza trattino, così non può mai entrare in conflitto con una tua dashboard.",
         "data": { "public_path": "Percorso pubblico" }
       }
     },

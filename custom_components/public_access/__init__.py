@@ -6,7 +6,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
 from . import data as ha_data
@@ -19,6 +19,9 @@ _LOGGER = logging.getLogger(__name__)
 
 DATA_COORDINATOR = "coordinator"
 DATA_REGISTERED_PATHS = "registered_paths"
+
+# Set up from the UI only; there is nothing to configure in YAML.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # Home Assistant fires this when a dashboard is edited.
 EVENT_LOVELACE_UPDATED = "lovelace_updated"
