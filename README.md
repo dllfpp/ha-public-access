@@ -91,6 +91,9 @@ reaches the visitor's browser. **What is on the view is visible, though:** if th
 or a map, visitors see it — so build the public view on purpose.
 
 The code that enforces this is in this repository, so you can read it before trusting it.
+The [`tests/`](tests) folder holds the automated checks GitHub runs on every change and release —
+among them, that the integration contains no code able to write to Home Assistant. Home Assistant
+never downloads it: HACS installs only `custom_components/public_access`.
 
 ---
 
