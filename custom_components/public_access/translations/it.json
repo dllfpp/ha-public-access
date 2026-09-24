@@ -3,21 +3,31 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Inserisci la chiave di abbonamento. Non hai una chiave? Inizia la prova gratuita su {trial_url}.",
-        "data": { "license_key": "Chiave di abbonamento" }
+        "description": "Incolla la chiave che hai ricevuto via email.\n\nNon hai una chiave? Inizia la prova gratuita su {trial_url}, senza carta.",
+        "data": {
+          "license_key": "Chiave di abbonamento"
+        }
       },
       "dashboard": {
-        "title": "Scegli cosa pubblicare",
-        "description": "Si possono pubblicare solo le dashboard con una configurazione salvata. Lascia vuoto il percorso della vista per pubblicare la prima.",
+        "title": "Quale dashboard?",
+        "description": "Scegli la dashboard da pubblicare.\n\nConsiglio: creane una apposta per il pubblico, con solo ciò che gli estranei possono vedere. Qui compaiono solo le dashboard salvate almeno una volta.",
         "data": {
-          "dashboard": "Dashboard",
-          "view_path": "Percorso della vista (facoltativo)"
+          "dashboard": "Dashboard"
         }
       },
       "path": {
-        "title": "Scegli l'indirizzo pubblico",
-        "description": "La dashboard sarà leggibile all'indirizzo del tuo Home Assistant seguito da questo percorso, senza login. Usa solo lettere minuscole, cifre e underscore — senza trattino, così non può mai entrare in conflitto con una tua dashboard.",
-        "data": { "public_path": "Percorso pubblico" }
+        "title": "Indirizzo pubblico",
+        "description": "È l’indirizzo che condividerai. I visitatori lo aprono **senza login**:\n\n**{base_url}/**`percorso-pubblico`\n\nPer esempio, con `solare` la pagina sarà su `{base_url}/solare`.\n\nUsa lettere minuscole, cifre e underscore, senza trattino: così non può mai entrare in conflitto con una tua dashboard.",
+        "data": {
+          "public_path": "Percorso pubblico"
+        }
+      },
+      "view": {
+        "title": "Quale vista?",
+        "description": "Una dashboard può avere più viste: le schede in alto in **{dashboard}**. Solo **una** diventa pubblica; le altre restano private.\n\nScegli la vista da pubblicare.",
+        "data": {
+          "view_path": "Vista da pubblicare"
+        }
       }
     },
     "error": {
@@ -42,8 +52,8 @@
           "mode": "Come viene prodotta la pagina",
           "snapshot_ttl": "Aggiornamento dello snapshot (secondi)",
           "dashboard": "Dashboard",
-          "view_path": "Percorso della vista (facoltativo)",
-          "public_path": "Percorso pubblico",
+          "view_path": "Vista da pubblicare (una scheda della dashboard)",
+          "public_path": "Percorso pubblico (la parte dopo l’indirizzo del tuo Home Assistant)",
           "noindex": "Chiedi ai motori di ricerca di non indicizzarla",
           "show_devices": "Includi i consumi dei singoli dispositivi",
           "cache_seconds": "Durata della cache",

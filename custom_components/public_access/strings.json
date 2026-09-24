@@ -3,21 +3,31 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Enter your subscription key. No key yet? Start a free trial at {trial_url}.",
-        "data": { "license_key": "Subscription key" }
+        "description": "Paste the key you received by email.\n\nNo key yet? Start a free trial at {trial_url} — no card needed.",
+        "data": {
+          "license_key": "Subscription key"
+        }
       },
       "dashboard": {
-        "title": "Choose what to publish",
-        "description": "Only dashboards with a saved configuration can be published. Leave the view path empty to publish the first view.",
+        "title": "Which dashboard?",
+        "description": "Pick the dashboard to publish.\n\nTip: create one just for the public, with only what strangers may see. Only dashboards you have saved at least once appear here.",
         "data": {
-          "dashboard": "Dashboard",
-          "view_path": "View path (optional)"
+          "dashboard": "Dashboard"
         }
       },
       "path": {
-        "title": "Choose the public address",
-        "description": "The dashboard will be readable at your Home Assistant address followed by this path, with no login. Use lowercase letters, digits and underscores only — no hyphen, so it can never collide with one of your dashboards.",
-        "data": { "public_path": "Public path" }
+        "title": "Public address",
+        "description": "This is the address you will share. Visitors open it with **no login**:\n\n**{base_url}/**`public-path`\n\nFor example, with `solar` the page will be at `{base_url}/solar`.\n\nUse lowercase letters, digits and underscores, with no hyphen: that way it can never clash with one of your dashboards.",
+        "data": {
+          "public_path": "Public path"
+        }
+      },
+      "view": {
+        "title": "Which view?",
+        "description": "A dashboard can have several views: the tabs at the top of **{dashboard}**. Only **one** of them becomes public; the others stay private.\n\nPick the view to publish.",
+        "data": {
+          "view_path": "View to publish"
+        }
       }
     },
     "error": {
@@ -42,8 +52,8 @@
           "mode": "How the page is produced",
           "snapshot_ttl": "Snapshot refresh (seconds)",
           "dashboard": "Dashboard",
-          "view_path": "View path (optional)",
-          "public_path": "Public path",
+          "view_path": "View to publish (a tab of the dashboard)",
+          "public_path": "Public path (the part after your Home Assistant address)",
           "noindex": "Ask search engines not to index it",
           "show_devices": "Include individual device consumption",
           "cache_seconds": "Cache duration",

@@ -1,274 +1,199 @@
 # Public Access for Home Assistant
 
-[![hacs][hacs-badge]][hacs-url]
+**Share one Home Assistant dashboard with anyone — read-only, on your own address, with no login.**
+
+[![Open your Home Assistant instance and add this repository in HACS][my-badge]][my-url]
 [![validate][validate-badge]][validate-url]
 
-**Share one Home Assistant dashboard publicly, read-only, on your own domain.**
+![A Home Assistant dashboard as a visitor sees it: no header, no sidebar, nothing to press](https://publicaccess.dllfpp.cloud/assets/ha-overview.png)
 
-You build a dashboard, choose a path, and it becomes readable at
-`https://home.example.com/<your-path>` — no account, no login, and no way for a visitor to change
-anything in your house.
+Your solar production for the neighbours, a weather station for the village, a guest screen for a
+holiday rental: pick a dashboard, give it an address, share the link. Visitors see it live, exactly
+as you designed it, and **cannot change anything** in your home. No account, no token, no app.
 
----
+- **Your real dashboard** — your theme, your layout, your custom cards.
+- **Nothing to press** — every command, save and script is refused before it reaches Home Assistant.
+- **Only what you chose** — one view of one dashboard; everything else stays private.
 
-## The problem this solves
-
-Home Assistant puts every dashboard behind the login. That is exactly right for a system that can
-unlock your door — but it leaves no way to show a dashboard to someone who should only ever *look*.
-
-There is still no built-in option for it. The usual workarounds are heavy (mirror everything into
-InfluxDB and publish Grafana instead) or outright dangerous (hand out a long-lived access token, which
-grants full control of the instance to whoever holds it).
-
-Public Access adds one capability and nothing else: **one dashboard, one public path, read-only, with
-no credentials anywhere.**
-
-It can do that in three ways, chosen per dashboard in the integration's options:
-
-| Mode | What the visitor gets | When to pick it |
-| --- | --- | --- |
-| **Mirror** (default) | Your real dashboard, live — Home Assistant's own frontend behind a read-only proxy | Almost always: exact layout, custom cards, animations, nothing re-implemented |
-| Live | Our own renderer over sanitized, allowlisted data | When you want a filtered, lightweight page that never shows anything but known card types |
-| Snapshot | A photograph, refreshed on demand | When the visitor's browser must never hold a live connection to your instance |
-
-## What people publish with it
-
-Anything you can express as a dashboard. A few examples:
-
-* **Energy and solar production** — show your PV output to neighbours or an energy community.
-* **A weather station or air-quality sensor** — publish the readings your neighbourhood actually cares
-  about, on your own page instead of someone else's platform.
-* **Community and municipal projects** — river levels, noise, temperature in a public building, a
-  village's shared monitoring.
-* **Farms, greenhouses, apiaries** — soil moisture, tank levels, hive weight, for co-owners or customers.
-* **Holiday rentals and B&Bs** — a guest info screen with indoor climate, pool temperature and the
-  house rules, opened from a QR code with nothing to log into.
-* **Shops, offices, clubs** — an opening-hours and status board, a marina's berth availability, a
-  makerspace's machine status, a sports club's court occupancy.
-* **Status screens and kiosks** — a wall display or a tablet that must show live data without ever
-  holding a credential, so a stolen device gives away nothing.
-
-Long-term statistics, live sensor values, charts and text are all supported, so most "show these
-numbers to people" dashboards work. Energy dashboards happen to be very well covered, but they are one
-use case, not the point.
-
-<!-- TODO before launch: add screenshots of two or three different published dashboards here. -->
+Free 5-day trial, then €2.99/month or €30/year → **[publicaccess.dllfpp.cloud](https://publicaccess.dllfpp.cloud)**
 
 ---
 
-## Quick start
+## Get started
 
-1. **HACS → three-dot menu → Custom repositories.** Add `https://github.com/dllfpp/ha-public-access`
-   with category **Integration**.
-2. Install **Public Access**, then **restart Home Assistant**.
-3. **Create the dashboard you want to publish** (Settings → Dashboards → Add dashboard), add your
-   cards, and **save it**. A dashboard that has never been saved has no stored configuration and
-   cannot be published — the picker will not offer it.
-4. **Settings → Devices & Services → Add Integration → Public Access.** Enter your subscription key,
-   choose the dashboard and the view, then choose the public path.
-5. Open `https://your-home-assistant/<your-path>` **in a private window** to see exactly what the
-   public sees.
+**1. Install.** Click the button above, or in HACS open *⋮ → Custom repositories*, add
+`https://github.com/dllfpp/ha-public-access` with type **Integration**, then install **Public Access**
+and restart Home Assistant.
 
-**Build a dashboard for the public on purpose.** Do not point this at your main dashboard: publish a
-dashboard you assembled deliberately, containing only what you are happy for strangers to read.
+**2. Get a key.** Ask for a free trial key at
+[publicaccess.dllfpp.cloud](https://publicaccess.dllfpp.cloud). It arrives by email in a minute.
 
----
+**3. Set it up.** *Settings → Devices & services → Add integration → Public Access*. The setup
+asks four things: your key, the dashboard, the view, and the public address. Then open the address in a
+private window to see exactly what your visitors see.
 
-## How it works
-
-```
-visitor ──GET /your-path──▶ Home Assistant ──▶ Public Access
-                                                │
-                                reads your dashboard's stored config (internally)
-                                sanitizes it against a whitelist
-                                derives an entity + statistic allowlist from what survived
-                                serves a static page + read-only JSON, cached
-```
-
-Four properties follow from that design:
-
-* **No token exists.** The integration reads Home Assistant from the inside. Nothing is created that
-  could be stolen, and no credential is ever sent to a browser.
-* **The visitor cannot ask for anything.** The browser may pick a period (`day`, `week`, `month`,
-  `year`) and nothing else. It cannot name an entity, a statistic or a date range — every id is
-  resolved server-side from your sanitized dashboard. Adding `?statistic_ids=…` to a request changes
-  nothing.
-* **Only GET exists.** Every other verb returns `405`.
-* **One view, published deliberately.** Other views of the same dashboard are dropped, so you can keep
-  private views right next to the public one.
+> **Tip:** create a dashboard just for the public, with only what strangers may see. Don't publish
+> your main dashboard.
 
 ---
 
-## Security model
+## The two things you choose
 
-This is an unauthenticated endpoint on your home server, so the sanitizer is the product's real risk
-surface. It lives in the open at
-[`sanitize.py`](custom_components/public_access/sanitize.py) so you can read it before trusting it, and
-it is a whitelist, not a filter:
+Everything you publish is described by two names. Here is what each one means, with an example.
 
-| Guarantee | How |
+Say your Home Assistant is at `https://home.example.com`, and you have a dashboard called
+**Energy** with three tabs at the top: *Overview*, *Solar* and *Costs*.
+
+### The view — *what* is public
+
+A dashboard can have several **views**: the tabs along its top. Public Access publishes **exactly
+one** of them. The other tabs, and every other dashboard, stay private — they are not even sent to the
+visitor's browser.
+
+In the setup you simply pick it from a list, by name: *Solar*.
+
+> Each view also has an address of its own (in the view's settings, *URL*), which is what
+> Home Assistant uses to find it — `solar` in this example, shown next to its name in the list.
+> A view can only be picked if it has one, except the first view of the dashboard.
+
+### The public path — *where* it is public
+
+The **public path** is the word you add after your Home Assistant address to make the public link.
+It is the address you give people:
+
+| You choose | Visitors open |
 | --- | --- |
-| Dangerous cards never render | `iframe`, `webpage`, `picture-elements`, `picture-glance`, `map`, `media-control`, `button`, `thermostat`, `light`, … are dropped outright |
-| Unknown cards leak nothing | Any card type not on the supported list becomes a neutral placeholder; its configuration is discarded |
-| No action can be triggered | `tap_action`, `hold_action`, `service`, `target`, `url`, `navigation_path`, `webhook`, `badges`, … are stripped at every nesting level |
-| No stray config escapes | Only keys explicitly allowed for each card type are emitted |
-| No hidden entity data escapes | The entity allowlist is derived from the cards that survived sanitizing |
-| No sensitive attributes escape | Only `friendly_name`, `unit_of_measurement`, `device_class`, `state_class`, `icon`, `min`, `max`, `step` are published — attribute dictionaries routinely carry latitude/longitude, entity pictures and access tokens, and none of those leave your instance |
-| Nothing can be written | `data.py` is the only module that touches Home Assistant and every call in it is a read |
+| `solar` | `https://home.example.com/solar` |
+| `weather` | `https://home.example.com/weather` |
 
-The test suite enforces these as invariants rather than trusting review: it scans the package for any
-write-capable call, asserts the public view implements no verb but `GET`, asserts the browser cannot
-choose ids, and runs the sanitizer against a deliberately hostile dashboard.
+The setup shows the link with your real address. Use lowercase letters, digits and underscores, with
+**no hyphen** — every Home Assistant dashboard address contains a hyphen, so a public path without one
+can never clash with a dashboard of yours. Paths Home Assistant already uses (`config`, `energy`,
+`history`, …) are refused, to keep your own interface intact.
 
-```bash
-python -m pytest tests -q
-```
-
-**Check what you are publishing at any time.** Settings → Devices & Services → Public Access →
-*Download diagnostics* reports the published title, the exact entity and statistic allowlists, and
-everything the sanitizer removed.
-
-### Choosing the public path
-
-A route registered by an integration outranks Home Assistant's own frontend routing, so a careless
-path such as `config` or `energy` would hide part of your own interface. The integration will not let
-that happen:
-
-* reserved paths and any currently registered panel or dashboard are rejected;
-* the path must contain **no hyphen**. Home Assistant requires every dashboard `url_path` to contain
-  one, so a hyphen-free public path structurally cannot collide with a dashboard of yours — now or in
-  the future.
+**So:** the *view* is the content, the *public path* is the link. In the example, the *Solar* tab of
+*Energy* is published at `https://home.example.com/solar`.
 
 ---
 
-## Supported cards
+## Is it safe?
 
-| Category | Cards |
-| --- | --- |
-| **Text and layout** | `markdown`, `heading`, `grid`, `vertical-stack`, `horizontal-stack` |
-| **Current values** | `tile`, `entities`, `glance`, `gauge`, `sensor` |
-| **Charts and history** | `statistics-graph`, `history-graph`, `statistic` |
-| **Energy** | `energy-usage-graph`, `energy-solar-graph`, `energy-gas-graph`, `energy-water-graph`, `energy-distribution`, `energy-sankey`, `energy-sources-table`, `energy-devices-graph`, `energy-devices-detail-graph`, `energy-self-consumption-gauge`, `energy-grid-neutrality-gauge`, `energy-carbon-consumed-gauge`, `energy-date-selection` |
+A public page on your home server has to be. Two independent locks make it read-only:
 
-Both the section and the classic (masonry) dashboard layouts are read. Anything not on the list renders
-as a placeholder, so your layout stays honest about what is missing.
+1. **Only reading is forwarded.** The visitor's page talks to Public Access, not to Home Assistant, and
+   only messages that *read* — states, statistics, the dashboard itself — are passed on. Commands,
+   saves, scripts and templates are refused.
+2. **A read-only user underneath.** What is passed on runs as a system user in Home Assistant's own
+   read-only group, so even a message that slipped through would be refused by Home Assistant.
 
-**Custom HACS cards are not supported, by design.** A community card expects a live, authenticated
-Home Assistant connection with full access — precisely what a public page must never have. Build your
-public dashboard from the cards above.
+Only the entities the published view actually shows are visible, and no password or token ever
+reaches the visitor's browser. **What is on the view is visible, though:** if the view shows a camera
+or a map, visitors see it — so build the public view on purpose.
 
-Both the current and the legacy Home Assistant energy configurations are understood, so the energy
-cards work whether or not your stored preferences have been migrated to the unified grid schema.
+The code that enforces this is in this repository, so you can read it before trusting it.
 
 ---
 
-## Mirror mode (default): the real frontend, read-only
+## Three ways to publish
 
-Mirror mode serves **Home Assistant's own frontend** to the visitor — the same JavaScript, the same
-cards, custom cards, animations, whatever layout you chose — and puts bulletproof glass between it
-and your instance. The frontend's websocket is steered to an endpoint of this integration that plays
-Home Assistant and forwards only what a viewer may do:
+Chosen in the integration's options (*Configure*). Almost everyone stays on the default.
 
-* an **allowlist** of message types — states, statistics, the dashboard's config, themes,
-  translations. Service calls, saves, scripts and templates are refused and never reach Home
-  Assistant;
-* everything that is forwarded runs as a **system user in Home Assistant's `system-read-only`
-  group**, so even a message that slipped past the allowlist would be refused by Home Assistant
-  itself;
-* states, subscriptions, history and statistics are **filtered to what the published view
-  references**, and only the published dashboard exists as far as the visitor can tell — other views
-  and dashboards are never sent.
-
-No real token exists in the browser. Every visitor is a live websocket on your instance, so the
-number of concurrent viewers is capped.
-
-**The glass stops doing, not seeing.** Like snapshot mode, mirror mode shows the view *as it is*:
-an `iframe` card, a camera, a map, a name — if it is on that view, the visitor sees it. The live
-mode's sanitizer does not apply here. The one deliberate exception is templates: the markdown card
-renders its text through Home Assistant's template engine, which can read any state, so only text
-that appears verbatim in the published view is ever rendered.
-
-**Why experimental.** The frontend's internals can change between Home Assistant releases; the
-intercept is deliberately tiny (the websocket URL and a fake token), but it is not something Home
-Assistant promises to keep stable. If a release breaks it, switch to live or snapshot mode until it
-is fixed.
-
-## Snapshot mode: publish the dashboard exactly as it looks
-
-If you want the page to be *exactly* your dashboard — your theme, your layout, your custom HACS
-cards — switch the integration's **mode** to **Snapshot**. A small companion,
-[Public Access Snapshot](https://github.com/dllfpp/photov-snapshot), opens the published view in a
-headless browser on your own machine, photographs it, and the integration serves the photograph.
-
-|  | Live | Snapshot |
+| Mode | The visitor gets | Pick it when |
 | --- | --- | --- |
-| Fidelity | Our renderer, close to Home Assistant | Pixel-perfect, including custom cards |
-| Interactive | Period switching, tooltips | A still image |
-| Mobile | Responsive layout | Scaled image |
-| What gets published | Only sanitized, allowlisted data | **Everything on the view, as pixels** |
-| Needs | Nothing extra | The add-on (HA OS / Supervised) or the container (HA Container) |
+| **Mirror** (default) | Your real dashboard, live, read-only | Almost always — exact layout, custom cards, animations |
+| **Live** | A lighter page drawn by our own renderer from filtered data | You want only known card types, never anything else |
+| **Snapshot** | A picture of the dashboard, refreshed on demand | The visitor's browser must never hold a live connection |
 
-**Read this before switching.** In snapshot mode the sanitizer protects nothing. A camera card, a map
-with your location, a person's name, an error message containing an entity id — if it is on that
-view, it is published. Build that dashboard deliberately for the public, and check the result in a
-private window.
-
-**Setup on Home Assistant OS or Supervised** — most installations:
-
-1. Settings → Add-ons → Add-on store → three-dot menu → *Repositories* → add
-   `https://github.com/dllfpp/photov-snapshot`.
-2. Install **Public Access Snapshot**. In its configuration set `ha_token` to a long-lived access
-   token from a dedicated user, and `dashboard` to the view's URL path, e.g. `pv-public/pv`.
-   Start it.
-3. Settings → Devices & Services → Public Access → *Configure* → mode **Snapshot**.
-
-**Setup on Home Assistant Container:** use the `docker-compose.yml` in that repository, mounting your
-configuration directory.
-
-**What it costs.** The image is ~1 GB on disk (a browser is a browser). The browser only runs for
-the seconds of a capture: rendering is **on demand**, triggered when a visitor opens the page and the
-image is older than the configured refresh, so a dashboard nobody looks at costs nothing. Idle, the
-companion is a small Python process. Nothing is uploaded anywhere: the token and the image both stay
-on your machine.
-
-**What the visitor sees.** The view as your dashboard shows it. Energy cards open on today by
-default; set the companion's `period` option to `week`, `month` or `year` to publish that range
-instead. The header, the view tabs and the sidebar are hidden, so the names of your other views are
-not revealed.
-
-**Lay the view out for the photograph.** The capture is 1100 px wide by default, and a wider capture
-does not give cards more room: Home Assistant's masonry layout answers a wider viewport by adding a
-column, so every card gets narrower. What works is a **Sections** view — set `max_columns: 2`, give
-the energy graphs `column_span: 2` and `grid_options: {columns: full}` — which puts the charts at full
-width, keeps the Sankey's labels and the sources table's cost column readable, and photographs into a
-single tall image.
-
----
-
-## Configuration
+## Options
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| Serve the public dashboard | on | Off makes the path answer `404`, as if it had never been configured |
-| Dashboard / view path | — | What gets published |
-| Public path | `public` | Lowercase letters, digits and underscores; no hyphen |
-| Ask search engines not to index | on | Sends `X-Robots-Tag: noindex, nofollow` |
+| Serve the public dashboard | on | Off: the address answers "not found", as if never configured |
+| Dashboard, view to publish | — | What is public |
+| Public path | `public` | Where it is public |
+| Ask search engines not to index it | on | Keeps the page out of Google and friends |
 | Include device consumption | on | Off hides the per-device energy breakdown |
-| Cache duration | 300 s | How long public responses are cached, so traffic never reaches your recorder |
-| Allowed embedding origins | `'self'` | The `Content-Security-Policy: frame-ancestors` value |
+| Cache duration | 300 s | How long a page is reused, so visitors never load your database |
 
-Requests are rate-limited to 60 per minute per client IP; beyond that the endpoint answers `429` with
-a `Retry-After` header.
+Each visitor address is limited to 60 requests a minute.
 
 ---
 
-## Embedding the page in your own website
+## Something is not right?
 
-Home Assistant applies `X-Frame-Options: SAMEORIGIN` to every response *after* this integration runs,
-and it cannot be overridden from inside an integration. To embed the dashboard in another site, drop
-that header at your reverse proxy and let the integration's CSP govern who may frame the page.
+**The setup refuses my key.** The message says why. *"This instance has already had its free
+trial"* means a trial was already used on this Home Assistant: subscribe with the link in the message
+and the same key starts working.
 
-**Nginx / Nginx Proxy Manager** (Advanced → Custom Nginx Configuration), on the public path only:
+**The address shows "not found".** The integration is switched off in its options, or you changed the
+public path: a new path starts working after a Home Assistant restart (a notice reminds you).
+
+**"This dashboard is not available".** The trial or subscription has ended. Your dashboard is not
+deleted; subscribing brings the page back.
+
+**My dashboard is not in the list.** Only dashboards saved at least once can be published. Open it,
+make any change, save.
+
+**My view is not in the list.** Give it an address: open the view's settings and fill in *URL*.
+
+**The path was refused.** It contains a hyphen or is already used by Home Assistant. Pick another word.
+
+**The page loads forever.** Reload with the cache cleared (Ctrl/Cmd + Shift + R). If it persists,
+[open an issue](https://github.com/dllfpp/ha-public-access/issues) with your Home Assistant version.
+
+---
+
+## Price and license
+
+A free **5-day trial** — no card — then **€2.99/month or €30/year** per Home Assistant instance.
+Payments, VAT and invoices are handled by Lemon Squeezy. When a trial or subscription ends the public
+page stops; nothing is deleted.
+
+The integration's code is **source-available** under [PolyForm Shield 1.0.0](LICENSE): read it, audit
+it, run it, modify it for your own use — just don't use it to build a competing product. That is why
+it is installed as a HACS *custom repository* rather than from the default store.
+
+Support: [GitHub issues](https://github.com/dllfpp/ha-public-access/issues). Payments, refunds and
+personal data: awiteva28@gmail.com.
+
+---
+
+## For the curious
+
+<details>
+<summary><b>How the key and the subscription work</b></summary>
+
+The key is checked when you enter it. Once accepted, Home Assistant keeps a signed permission that it
+verifies on its own, so your page keeps working if our server is briefly unreachable. Our server only
+ever receives the key, a one-way fingerprint of your Home Assistant instance, and version numbers —
+nothing about your home. A trial works on one instance; a paid key can move to a new one when you
+reinstall.
+
+</details>
+
+<details>
+<summary><b>Snapshot mode setup</b></summary>
+
+Snapshot mode needs a small companion that photographs the view on your own machine:
+
+1. *Settings → Add-ons → Add-on store → ⋮ → Repositories* → add
+   `https://github.com/dllfpp/photov-snapshot`.
+2. Install **Public Access Snapshot**. Set `ha_token` to a long-lived access token of a dedicated
+   user, and `dashboard` to the view's address, e.g. `energy-public/solar`. Start it.
+3. In Public Access *Configure*, choose mode **Snapshot**.
+
+On Home Assistant Container, use the `docker-compose.yml` of that repository. The companion's browser
+only runs during a capture, when a visitor opens the page and the picture is older than the refresh
+interval. For a tidy picture use a **Sections** view with `max_columns: 2`.
+
+</details>
+
+<details>
+<summary><b>Embedding the page in your own website</b></summary>
+
+Home Assistant forbids framing its pages (`X-Frame-Options: SAMEORIGIN`), and an integration cannot
+change that. Drop the header at your reverse proxy, on the public path only — for Nginx or Nginx Proxy
+Manager:
 
 ```nginx
 location /your-path {
@@ -276,96 +201,62 @@ location /your-path {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-
-    # Home Assistant's SAMEORIGIN would block embedding; the integration's
-    # frame-ancestors policy takes over.
     proxy_hide_header X-Frame-Options;
 }
 ```
 
-Then set **Allowed embedding origins** to the site that will embed it, for example
-`'self' https://www.example.com`. Leave it at `'self'` if you do not want the page framed anywhere.
+Then set **Allowed embedding origins** in the options, e.g. `'self' https://www.example.com`.
 
----
+</details>
 
-## Troubleshooting
+<details>
+<summary><b>Live mode: supported cards</b></summary>
 
-**The public URL returns 404.**
-Either the integration is disabled in its options, or the public path was changed without restarting.
-A route cannot be removed at runtime, so a new path only starts answering after a restart — a repair
-notice appears in Home Assistant to remind you.
+Live mode draws the page itself from filtered data, so it supports a fixed set of cards; anything
+else shows as a placeholder. Mirror and snapshot modes show every card, custom ones included.
 
-**"This dashboard is not available".**
-The subscription is inactive, expired past its grace period, or no key is configured. Diagnostics show
-the exact license status. Your page keeps working through a license-server outage: a cached
-entitlement is honoured until it expires, then for a grace period on top.
+| Category | Cards |
+| --- | --- |
+| Text and layout | `markdown`, `heading`, `grid`, `vertical-stack`, `horizontal-stack` |
+| Current values | `tile`, `entities`, `glance`, `gauge`, `sensor` |
+| Charts | `statistics-graph`, `history-graph`, `statistic` |
+| Energy | all energy cards, including `energy-sankey` and `energy-date-selection` |
 
-**The dashboard picker is empty.**
-No dashboard has a saved configuration yet. Create one, add at least one card, and save it — an
-auto-generated dashboard has nothing stored to publish.
+</details>
 
-**The path was rejected.**
-It collides with a Home Assistant panel or one of your dashboards, or it contains a hyphen. See
-[Choosing the public path](#choosing-the-public-path); this check is protecting your own interface.
+<details>
+<summary><b>Security details and reporting a vulnerability</b></summary>
 
-**The charts say "No statistics for this period yet".**
-The published cards reference long-term statistics that your recorder has not collected. Only entities
-with a `state_class` get statistics; for an energy dashboard, check Settings → Dashboards → Energy first.
+The allowlist of forwarded messages is in
+[`mirror.py`](custom_components/public_access/mirror.py) and the live-mode sanitizer in
+[`sanitize.py`](custom_components/public_access/sanitize.py). The test suite checks, among other
+things, that the package contains no write-capable call, that a missing view publishes nothing rather
+than another view, and that the owner's default dashboard never reaches the visitor.
 
-**A card shows a placeholder.**
-That card type is not supported. See [Supported cards](#supported-cards).
+Please report a vulnerability privately through the repository's *Security → Report a
+vulnerability*, not in a public issue.
 
----
+</details>
 
-## Subscription and license
-
-Public Access is a commercial product with a monthly subscription. This repository holds the open,
-auditable part — the integration, the sanitizer and the public HTTP surface — because asking anyone to
-expose an unauthenticated endpoint from a closed binary would not be reasonable. The full renderer is
-delivered as a signed payload to active subscribers, and the plugin verifies its signature offline
-against a pinned key, so your public page survives a license-server outage.
-
-The code here is **source-available, not open source**: it is licensed under
-[PolyForm Shield 1.0.0](LICENSE). You may read it, audit it, run it, and modify it for your own use —
-what you may not do is use it to build a competing product. If you want to do something the license
-does not allow, ask.
-
-Because that is not an OSI-approved license, this integration is installed as a **HACS custom
-repository** (as in [Quick start](#quick-start)) rather than from the HACS default store.
-
-<!-- TODO before launch: pricing page, terms of service, privacy note covering what the heartbeat
-     sends. -->
-
----
-
-## Development
+<details>
+<summary><b>Development</b></summary>
 
 ```bash
-git clone git@github.com:dllfpp/ha-public-access.git
+git clone https://github.com/dllfpp/ha-public-access.git
 cd ha-public-access
-python -m pytest tests -q          # sanitizer + no-write invariants, no HA install needed
+python -m pytest tests -q
 ```
 
-The reference environment is a throwaway Home Assistant container seeded with synthetic statistics and
-a deliberately hostile dashboard — one containing an `iframe`, a `picture-elements` with a
-service-call action, action-carrying badges, stray keys, an unknown custom card and a second private
-view — so every release is checked against the payloads a real attacker would look for.
+Copy `custom_components/public_access` into your `config/custom_components/` and restart Home
+Assistant to try a change.
 
-Copy `custom_components/public_access` into your Home Assistant `config/custom_components/` directory
-and restart to test a change.
-
-## Reporting a security issue
-
-Please do not open a public issue for a vulnerability in the sanitizer or the public endpoints. Report
-it privately through the repository's security advisories so it can be fixed before it is described.
-
-<!-- TODO before launch: enable private vulnerability reporting on the repository. -->
+</details>
 
 ---
 
-<sub>Not affiliated with the Home Assistant project or Nabu Casa.</sub>
+<sub>Not affiliated with the Home Assistant project, the Open Home Foundation or Nabu Casa.</sub>
 
-[hacs-badge]: https://img.shields.io/badge/HACS-custom-41BDF5.svg
-[hacs-url]: https://hacs.xyz
+[my-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
+[my-url]: https://my.home-assistant.io/redirect/hacs_repository/?owner=dllfpp&repository=ha-public-access&category=integration
 [validate-badge]: https://github.com/dllfpp/ha-public-access/actions/workflows/validate.yml/badge.svg
 [validate-url]: https://github.com/dllfpp/ha-public-access/actions/workflows/validate.yml

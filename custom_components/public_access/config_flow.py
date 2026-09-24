@@ -57,6 +57,43 @@ from .const import (
 
 PATH_PATTERN = re.compile(r"^[a-z0-9_]{2,48}$")
 
+# Dropdown value for a first view that has no address of its own.
+FIRST_VIEW = "__first__"
+
+
+def view_options(dashboard: dict[str, Any]) -> list[selector.SelectOptionDict]:
+    """The dashboard's views as dropdown choices, by name.
+
+    A view is found by its address (the last part of its URL). A view without
+    one can only be reached as the first view; any other view without an
+    address cannot be picked until it is given one in its settings.
+    """
+    options: list[selector.SelectOptionDict] = []
+    for index, view in enumerate(dashboard.get("views") or []):
+        path = view.get("path")
+        title = view.get("title") or f"View {index + 1}"
+        if path is None or str(path) == "":
+            if index == 0:
+                options.append(selector.SelectOptionDict(value=FIRST_VIEW, label=f"{title} — first view"))
+            continue
+        options.append(selector.SelectOptionDict(value=str(path), label=f"{title} — /{path}"))
+    return options
+
+
+def _stored_view(value: str | None) -> str | None:
+    return None if not value or value == FIRST_VIEW else value
+
+
+def public_base_url(hass: Any) -> str:
+    """This Home Assistant's address as the internet sees it, for the example
+    shown in the setup form; a placeholder when none is configured."""
+    try:
+        from homeassistant.helpers.network import get_url
+
+        return get_url(hass, prefer_external=True, allow_internal=True).rstrip("/")
+    except Exception:  # noqa: BLE001 - NoURLAvailableError and friends
+        return "https://your-home-assistant"
+
 
 def validate_public_path(hass: Any, path: str) -> str | None:
     """Return an error key, or None when the path is safe to claim."""
@@ -129,9 +166,12 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data[CONF_DASHBOARD] = user_input[CONF_DASHBOARD]
-            view_path = (user_input.get(CONF_VIEW_PATH) or "").strip()
-            self._data[CONF_VIEW_PATH] = view_path or None
-            return await self.async_step_path()
+            views = view_options(self._dashboard(user_input[CONF_DASHBOARD]))
+            if len(views) <= 1:
+                # One view (or none with an address): nothing to choose.
+                self._data[CONF_VIEW_PATH] = _stored_view(views[0]["value"]) if views else None
+                return await self.async_step_path()
+            return await self.async_step_view()
 
         options = [
             selector.SelectOptionDict(
@@ -148,9 +188,35 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
                             options=options, mode=selector.SelectSelectorMode.DROPDOWN
                         )
                     ),
-                    vol.Optional(CONF_VIEW_PATH, default=""): str,
                 }
             ),
+        )
+
+    def _dashboard(self, url_path: str) -> dict[str, Any]:
+        return next((d for d in self._dashboards if d["url_path"] == url_path), {"views": []})
+
+    async def async_step_view(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick the one view of the dashboard that will be public, by name."""
+        dashboard = self._dashboard(self._data[CONF_DASHBOARD])
+        if user_input is not None:
+            self._data[CONF_VIEW_PATH] = _stored_view(user_input[CONF_VIEW_PATH])
+            return await self.async_step_path()
+
+        views = view_options(dashboard)
+        return self.async_show_form(
+            step_id="view",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_VIEW_PATH, default=views[0]["value"]): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=views, mode=selector.SelectSelectorMode.LIST
+                        )
+                    ),
+                }
+            ),
+            description_placeholders={"dashboard": dashboard.get("title", "")},
         )
 
     async def async_step_path(
@@ -183,6 +249,7 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
                 {vol.Required(CONF_PUBLIC_PATH, default=DEFAULT_PUBLIC_PATH): str}
             ),
             errors=errors,
+            description_placeholders={"base_url": public_base_url(self.hass)},
         )
 
     @staticmethod
@@ -207,9 +274,22 @@ class PublicAccessOptionsFlow(OptionsFlow):
                 if error:
                     errors[CONF_PUBLIC_PATH] = error
             if not errors:
-                return self.async_create_entry(data={**user_input, CONF_PUBLIC_PATH: path})
+                return self.async_create_entry(
+                    data={
+                        **user_input,
+                        CONF_PUBLIC_PATH: path,
+                        CONF_VIEW_PATH: _stored_view((user_input.get(CONF_VIEW_PATH) or "").strip()),
+                    }
+                )
 
         dashboards = await ha_data.async_list_publishable_dashboards(self.hass)
+        current_dashboard = next(
+            (d for d in dashboards if d["url_path"] == current.get(CONF_DASHBOARD)), {"views": []}
+        )
+        views = view_options(current_dashboard)
+        current_view = current.get(CONF_VIEW_PATH) or (FIRST_VIEW if views and views[0]["value"] == FIRST_VIEW else "")
+        if current_view and current_view not in {v["value"] for v in views}:
+            views.append(selector.SelectOptionDict(value=current_view, label=f"/{current_view} (not found)"))
         options = [
             selector.SelectOptionDict(
                 value=item["url_path"], label=f"{item['title']} ({item['url_path']})"
@@ -256,9 +336,13 @@ class PublicAccessOptionsFlow(OptionsFlow):
                         options=options, mode=selector.SelectSelectorMode.DROPDOWN
                     )
                 ),
-                vol.Optional(
-                    CONF_VIEW_PATH, default=current.get(CONF_VIEW_PATH) or ""
-                ): str,
+                vol.Optional(CONF_VIEW_PATH, default=current_view): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=views,
+                        custom_value=True,  # another dashboard's view can be typed
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Required(
                     CONF_PUBLIC_PATH, default=current.get(CONF_PUBLIC_PATH)
                 ): str,
