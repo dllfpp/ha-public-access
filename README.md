@@ -142,7 +142,7 @@ that happen:
 | **Text and layout** | `markdown`, `heading`, `grid`, `vertical-stack`, `horizontal-stack` |
 | **Current values** | `tile`, `entities`, `glance`, `gauge`, `sensor` |
 | **Charts and history** | `statistics-graph`, `history-graph`, `statistic` |
-| **Energy** | `energy-usage-graph`, `energy-solar-graph`, `energy-gas-graph`, `energy-water-graph`, `energy-distribution`, `energy-sources-table`, `energy-devices-graph`, `energy-devices-detail-graph`, `energy-self-consumption-gauge`, `energy-grid-neutrality-gauge`, `energy-carbon-consumed-gauge`, `energy-date-selection` |
+| **Energy** | `energy-usage-graph`, `energy-solar-graph`, `energy-gas-graph`, `energy-water-graph`, `energy-distribution`, `energy-sankey`, `energy-sources-table`, `energy-devices-graph`, `energy-devices-detail-graph`, `energy-self-consumption-gauge`, `energy-grid-neutrality-gauge`, `energy-carbon-consumed-gauge`, `energy-date-selection` |
 
 Both the section and the classic (masonry) dashboard layouts are read. Anything not on the list renders
 as a placeholder, so your layout stays honest about what is missing.

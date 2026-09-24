@@ -24,6 +24,7 @@ CARD_KEYS: dict[str, frozenset[str]] = {
     "energy-gas-graph": frozenset(),
     "energy-water-graph": frozenset(),
     "energy-distribution": frozenset(),
+    "energy-sankey": frozenset({"layout"}),
     "energy-sources-table": frozenset(),
     "energy-devices-graph": frozenset(),
     "energy-devices-detail-graph": frozenset(),
