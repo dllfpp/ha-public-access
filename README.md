@@ -228,7 +228,7 @@ That card type is not supported. See [Supported cards](#supported-cards).
 
 ---
 
-## Subscription
+## Subscription and licence
 
 Public Access is a commercial product with a monthly subscription. This repository holds the open,
 auditable part — the integration, the sanitizer and the public HTTP surface — because asking anyone to
@@ -236,8 +236,16 @@ expose an unauthenticated endpoint from a closed binary would not be reasonable.
 delivered as a signed payload to active subscribers, and the plugin verifies its signature offline
 against a pinned key, so your public page survives a licence-server outage.
 
-<!-- TODO before launch: LICENSE file (a business decision, not a technical one), pricing page,
-     terms of service, privacy note covering what the heartbeat sends. -->
+The code here is **source-available, not open source**: it is licensed under
+[PolyForm Shield 1.0.0](LICENSE). You may read it, audit it, run it, and modify it for your own use —
+what you may not do is use it to build a competing product. If you want to do something the licence
+does not allow, ask.
+
+Because that is not an OSI-approved licence, this integration is installed as a **HACS custom
+repository** (as in [Quick start](#quick-start)) rather than from the HACS default store.
+
+<!-- TODO before launch: pricing page, terms of service, privacy note covering what the heartbeat
+     sends. -->
 
 ---
 
