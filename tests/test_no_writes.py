@@ -19,6 +19,10 @@ FORBIDDEN = (
     "states.async_set",
     "async_save(",         # store / config writes
     "async_update_entry_data",
+    "async_create_system_user(",  # auth store writes: allowed only in mirror.py
+    "async_create_refresh_token(",
+    "async_remove_user(",
+    "async_update_user(",
     "save_prefs",
     "import_statistics",
     "clear_statistics",
@@ -30,8 +34,18 @@ FORBIDDEN = (
     "exec(",
 )
 
-# Storing our own cached licence entitlement is a legitimate write.
-ALLOWED = {("license.py", "async_save(")}
+# The writes this integration does perform, each to its own state and each
+# named here so a new one cannot appear unnoticed:
+# - license.py caches the signed entitlement;
+# - mirror.py remembers the id of the read-only viewer user it created, and
+#   creating that user (and its refresh token) is itself a write to the auth
+#   store — once, and never anything that touches the owner's own users.
+ALLOWED = {
+    ("license.py", "async_save("),
+    ("mirror.py", "async_save("),
+    ("mirror.py", "async_create_system_user("),
+    ("mirror.py", "async_create_refresh_token("),
+}
 
 
 def python_sources():

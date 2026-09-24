@@ -62,7 +62,13 @@ ALLOWED_TYPES: frozenset[str] = frozenset(
         "frontend/get_themes",
         "frontend/get_translations",
         "frontend/get_user_data",
+        "frontend/subscribe_user_data",  # the viewer's own (empty) preferences
+        "frontend/subscribe_system_data",  # frontend feature flags, nothing private
         "frontend/get_icons",
+        "brands/access_token",  # lets the frontend fetch integration logos
+        "labs/subscribe",  # experimental-feature flags
+        # Deliberately absent: repairs/list_issues and persistent_notification/*
+        # would leak the owner's repair issues and notifications.
         "config/area_registry/list",
         "config/floor_registry/list",
         "config/label_registry/list",
@@ -314,7 +320,11 @@ class MirrorSession:
                     json.dumps(self._error(msg_id or 0, "unauthorized", "Read-only public view"))
                 )
             )
-            _LOGGER.debug("Mirror refused %s", kind)
+            _LOGGER.debug(
+                "Mirror refused %s %s",
+                kind,
+                f"{msg.get('domain')}.{msg.get('service')}" if kind == "call_service" else "",
+            )
             return
 
         if kind == "subscribe_events":
