@@ -156,6 +156,31 @@ cards work whether or not your stored preferences have been migrated to the unif
 
 ---
 
+## Mirror mode (experimental): the real frontend, read-only
+
+Mirror mode serves **Home Assistant's own frontend** to the visitor — the same JavaScript, the same
+cards, custom cards, animations, whatever layout you chose — and puts bulletproof glass between it
+and your instance. The frontend's websocket is steered to an endpoint of this integration that plays
+Home Assistant and forwards only what a viewer may do:
+
+* an **allowlist** of message types — states, statistics, the dashboard's config, themes,
+  translations. Service calls, saves, scripts and templates are refused and never reach Home
+  Assistant;
+* everything that is forwarded runs as a **system user in Home Assistant's `system-read-only`
+  group**, so even a message that slipped past the allowlist would be refused by Home Assistant
+  itself;
+* states, subscriptions, history and statistics are **filtered to what the published view
+  references**, and only the published dashboard exists as far as the visitor can tell — other views
+  and dashboards are never sent.
+
+No real token exists in the browser. Every visitor is a live websocket on your instance, so the
+number of concurrent viewers is capped.
+
+**Why experimental.** The frontend's internals can change between Home Assistant releases; the
+intercept is deliberately tiny (the websocket URL and a fake token), but it is not something Home
+Assistant promises to keep stable. If a release breaks it, switch to live or snapshot mode until it
+is fixed.
+
 ## Snapshot mode: publish the dashboard exactly as it looks
 
 If you want the page to be *exactly* your dashboard — your theme, your layout, your custom HACS
