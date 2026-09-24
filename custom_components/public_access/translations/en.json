@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Enter your subscription key. During development, any key starting with DEV- works offline.",
+        "description": "Enter your subscription key. No key yet? Start a free trial at https://publicaccess.dllfpp.cloud.",
         "data": { "license_key": "Subscription key" }
       },
       "dashboard": {

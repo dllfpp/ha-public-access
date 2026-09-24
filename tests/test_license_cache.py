@@ -15,3 +15,11 @@ def test_a_cached_entitlement_is_only_trusted_for_its_own_key():
     assert cache_belongs_to(payload, " pa-dqdu-wjg3-d2pu-ynzw ")
     assert not cache_belongs_to(payload, "PA-Y723-TECQ-Z33N-4A8G")
     assert not cache_belongs_to({}, "PA-Y723-TECQ-Z33N-4A8G")
+
+
+def test_no_key_unlocks_the_plugin_without_the_server():
+    """A development shortcut (DEV- keys served without any check) once shipped."""
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[1] / "custom_components" / "public_access" / "license.py").read_text()
+    assert "startswith(\"DEV-\")" not in source and "DEV-" not in source

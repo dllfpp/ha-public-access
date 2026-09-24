@@ -69,8 +69,6 @@ use case, not the point.
 5. Open `https://your-home-assistant/<your-path>` **in a private window** to see exactly what the
    public sees.
 
-> While the license service is being built, any key starting with `DEV-` unlocks the plugin locally.
-
 **Build a dashboard for the public on purpose.** Do not point this at your main dashboard: publish a
 dashboard you assembled deliberately, containing only what you are happy for strangers to read.
 

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Public Access",
-        "description": "Inserisci la chiave di abbonamento. In fase di sviluppo funziona offline qualsiasi chiave che inizia con DEV-.",
+        "description": "Inserisci la chiave di abbonamento. Non hai una chiave? Inizia la prova gratuita su https://publicaccess.dllfpp.cloud.",
         "data": { "license_key": "Chiave di abbonamento" }
       },
       "dashboard": {

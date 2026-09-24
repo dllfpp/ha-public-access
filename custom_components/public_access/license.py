@@ -226,16 +226,6 @@ class LicenseManager:
     async def async_refresh(self, force: bool = False) -> LicenseState:
         """Contact the license server if due, and apply whatever it says."""
         async with self._lock:
-            if self._key.startswith("DEV-"):
-                self.state = LicenseState(
-                    status=STATUS_ACTIVE,
-                    plan="development",
-                    features={"energy", "generic-cards"},
-                    message="Development license: no license server contacted.",
-                    last_check=time.time(),
-                )
-                return self.state
-
             if not self._key:
                 self.state = LicenseState(
                     status=STATUS_UNLICENSED, message="No license key configured."
