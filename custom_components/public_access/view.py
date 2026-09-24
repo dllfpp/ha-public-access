@@ -214,6 +214,7 @@ class PublicDashboardView(HomeAssistantView):
 
         if route == "ws":
             entity_ids, statistic_ids = await self._coordinator.async_mirror_allowlists()
+            templates = await self._coordinator.async_mirror_templates()
             return await mirror.async_serve_websocket(
                 self.hass,
                 request,
@@ -222,6 +223,7 @@ class PublicDashboardView(HomeAssistantView):
                 view_path=view_path,
                 entity_ids=entity_ids,
                 statistic_ids=statistic_ids,
+                templates=templates,
             )
         if route == "healthz":
             return self._json({"status": "ok", "path": self.public_path, "mode": MODE_MIRROR})

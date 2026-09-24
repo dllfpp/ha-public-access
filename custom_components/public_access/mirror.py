@@ -76,7 +76,12 @@ ALLOWED_TYPES: frozenset[str] = frozenset(
         "config/entity_registry/list",  # filtered
         "config/entity_registry/list_for_display",  # filtered
         "lovelace/config",  # rewritten: the published dashboard, one view
+        "lovelace/info",  # resource mode; the frontend asks at boot
         "lovelace/resources",  # custom cards need their JavaScript
+        # render_template is allowed ONLY for a template string that appears
+        # verbatim in the published view (the markdown card renders its content
+        # through it). Anything else could read every state and is refused.
+        "render_template",
         "energy/get_prefs",
         "energy/info",
         "energy/validate",
@@ -208,6 +213,7 @@ class MirrorSession:
         view_path: str | None,
         entity_ids: set[str] | None,
         statistic_ids: set[str] | None,
+        templates: set[str] | None = None,
     ) -> None:
         from homeassistant.components.websocket_api.connection import ActiveConnection
         from homeassistant.components.websocket_api.messages import (
@@ -221,6 +227,7 @@ class MirrorSession:
         self._view_path = view_path
         self._entities = entity_ids
         self._statistics = statistic_ids
+        self._templates = templates or set()
         self._types: dict[int, str] = {}
         self._loop = hass.loop
         self._error = error_message
@@ -375,6 +382,13 @@ class MirrorSession:
             msg = {**msg, "statistic_ids": [s for s in wanted if s in self._statistics]}
         elif kind == "lovelace/config":
             msg = {**msg, "url_path": self._dashboard}
+        elif kind == "render_template":
+            if msg.get("template") not in self._templates:
+                self._loop.create_task(
+                    self._ws.send_str(json.dumps(self._error(msg_id, "unauthorized", "Read-only public view")))
+                )
+                _LOGGER.debug("Mirror refused render_template (not from the published view)")
+                return
 
         self._types[msg_id] = kind
         self._connection.async_handle(msg)
@@ -392,6 +406,7 @@ async def async_serve_websocket(
     view_path: str | None,
     entity_ids: set[str] | None,
     statistic_ids: set[str] | None,
+    templates: set[str] | None = None,
 ) -> web.WebSocketResponse:
     """The public websocket endpoint."""
     global _connections  # noqa: PLW0603
@@ -417,7 +432,7 @@ async def async_serve_websocket(
     session = MirrorSession(
         hass, ws, user, token, request.remote,
         public_path=public_path, dashboard=dashboard, view_path=view_path,
-        entity_ids=entity_ids, statistic_ids=statistic_ids,
+        entity_ids=entity_ids, statistic_ids=statistic_ids, templates=templates,
     )
     _connections += 1
     try:

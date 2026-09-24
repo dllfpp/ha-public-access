@@ -264,6 +264,37 @@ class PublicDashboardCoordinator:
         statistics |= entities
         return entities, statistics
 
+    async def async_mirror_templates(self) -> set[str]:
+        """Template strings the published view contains, verbatim.
+
+        The markdown card renders its content through render_template, which
+        can otherwise read any state; only text the owner put in the view may be
+        rendered.
+        """
+        url_path = self.options.get(CONF_DASHBOARD)
+        config = await ha_data.async_load_dashboard_config(self.hass, url_path) if url_path else None
+        if not config:
+            return set()
+        view_path = self.options.get(CONF_VIEW_PATH) or None
+        found: set[str] = set()
+
+        def walk(value: Any) -> None:
+            if isinstance(value, str):
+                if "{{" in value or "{%" in value or len(value) > 0:
+                    found.add(value)
+            elif isinstance(value, dict):
+                for item in value.values():
+                    walk(item)
+            elif isinstance(value, list):
+                for item in value:
+                    walk(item)
+
+        for view in config.get("views", []) or []:
+            if isinstance(view, dict) and (view_path is None or view.get("path") == view_path):
+                walk(view)
+                break
+        return found
+
     # -- owner-facing ----------------------------------------------------------
 
     async def async_owner_report(self) -> dict[str, Any]:
