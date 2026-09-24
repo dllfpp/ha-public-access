@@ -29,6 +29,10 @@ MODE_SNAPSHOT: Final = "snapshot"
 # proxy: exactly what the owner sees, live, with nothing forwarded that could
 # change anything. See mirror.py.
 MODE_MIRROR: Final = "mirror"
+# Mirror is the default: it shows exactly what the owner sees, live, and the
+# read-only guarantee is enforced server-side rather than by re-implementing
+# cards. Live and snapshot remain as alternatives.
+DEFAULT_MODE: Final = MODE_MIRROR
 CONF_SNAPSHOT_TTL: Final = "snapshot_ttl"
 DEFAULT_SNAPSHOT_TTL: Final = 900
 # Where the companion writes, relative to the configuration directory.

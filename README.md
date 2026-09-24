@@ -23,6 +23,14 @@ grants full control of the instance to whoever holds it).
 Public Access adds one capability and nothing else: **one dashboard, one public path, read-only, with
 no credentials anywhere.**
 
+It can do that in three ways, chosen per dashboard in the integration's options:
+
+| Mode | What the visitor gets | When to pick it |
+| --- | --- | --- |
+| **Mirror** (default) | Your real dashboard, live — Home Assistant's own frontend behind a read-only proxy | Almost always: exact layout, custom cards, animations, nothing re-implemented |
+| Live | Our own renderer over sanitized, allowlisted data | When you want a filtered, lightweight page that never shows anything but known card types |
+| Snapshot | A photograph, refreshed on demand | When the visitor's browser must never hold a live connection to your instance |
+
 ## What people publish with it
 
 Anything you can express as a dashboard. A few examples:
@@ -156,7 +164,7 @@ cards work whether or not your stored preferences have been migrated to the unif
 
 ---
 
-## Mirror mode (experimental): the real frontend, read-only
+## Mirror mode (default): the real frontend, read-only
 
 Mirror mode serves **Home Assistant's own frontend** to the visitor — the same JavaScript, the same
 cards, custom cards, animations, whatever layout you chose — and puts bulletproof glass between it
@@ -194,7 +202,7 @@ cards — switch the integration's **mode** to **Snapshot**. A small companion,
 [Public Access Snapshot](https://github.com/dllfpp/photov-snapshot), opens the published view in a
 headless browser on your own machine, photographs it, and the integration serves the photograph.
 
-|  | Live (default) | Snapshot |
+|  | Live | Snapshot |
 | --- | --- | --- |
 | Fidelity | Our renderer, close to Home Assistant | Pixel-perfect, including custom cards |
 | Interactive | Period switching, tooltips | A still image |

@@ -34,7 +34,7 @@
     "step": {
       "init": {
         "title": "Public Access settings",
-        "description": "Changing the public path takes effect after a Home Assistant restart.\n\n**Snapshot mode publishes a photograph of the real dashboard, taken by the Public Access Snapshot add-on. Nothing is filtered: whatever is on that view is published as pixels — a camera card, a map with your location, a name. Build that dashboard for the public on purpose.**",
+        "description": "Mirror (the default) serves your real dashboard, live, over a read-only connection. Changing the public path takes effect after a Home Assistant restart.\n\n**Snapshot mode publishes a photograph of the real dashboard, taken by the Public Access Snapshot add-on. Nothing is filtered: whatever is on that view is published as pixels — a camera card, a map with your location, a name. Build that dashboard for the public on purpose.**",
         "data": {
           "enabled": "Serve the public dashboard",
           "mode": "How the page is produced",

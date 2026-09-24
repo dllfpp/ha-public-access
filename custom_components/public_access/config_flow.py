@@ -42,6 +42,7 @@ from .const import (
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
     DEFAULT_LICENSE_SERVER,
+    DEFAULT_MODE,
     DEFAULT_NOINDEX,
     DEFAULT_PUBLIC_PATH,
     DEFAULT_SNAPSHOT_TTL,
@@ -150,6 +151,7 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
                     data=self._data,
                     options={
                         CONF_ENABLED: True,
+                        CONF_MODE: DEFAULT_MODE,
                         CONF_NOINDEX: DEFAULT_NOINDEX,
                         CONF_CACHE_SECONDS: DEFAULT_CACHE_SECONDS,
                         CONF_SHOW_DEVICES: True,
@@ -204,7 +206,7 @@ class PublicAccessOptionsFlow(OptionsFlow):
             {
                 vol.Required(CONF_ENABLED, default=current.get(CONF_ENABLED, True)): bool,
                 vol.Required(
-                    CONF_MODE, default=current.get(CONF_MODE, MODE_LIVE)
+                    CONF_MODE, default=current.get(CONF_MODE, DEFAULT_MODE)
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[

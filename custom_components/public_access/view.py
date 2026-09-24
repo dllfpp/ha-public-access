@@ -40,6 +40,7 @@ from .const import (
     CONF_SNAPSHOT_TTL,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
+    DEFAULT_MODE,
     DEFAULT_SNAPSHOT_TTL,
     MODE_LIVE,
     MODE_MIRROR,
@@ -167,7 +168,7 @@ class PublicDashboardView(HomeAssistantView):
             )
 
         route = extra.strip("/")
-        mode = self._options.get(CONF_MODE, MODE_LIVE)
+        mode = self._options.get(CONF_MODE, DEFAULT_MODE)
         if mode == MODE_MIRROR:
             return await self._mirror(request, route)
         if mode == MODE_SNAPSHOT:
