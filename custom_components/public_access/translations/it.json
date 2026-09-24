@@ -34,9 +34,11 @@
     "step": {
       "init": {
         "title": "Impostazioni di Public Access",
-        "description": "La modifica del percorso pubblico ha effetto dopo il riavvio di Home Assistant.",
+        "description": "La modifica del percorso pubblico ha effetto dopo il riavvio di Home Assistant.\n\n**La modalità snapshot pubblica una fotografia della dashboard reale, scattata dall'add-on Public Access Snapshot. Nulla viene filtrato: tutto ciò che è in quella vista diventa pubblico in pixel — una telecamera, una mappa con la tua posizione, un nome. Costruisci quella dashboard apposta per il pubblico.**",
         "data": {
           "enabled": "Pubblica la dashboard",
+          "mode": "Come viene prodotta la pagina",
+          "snapshot_ttl": "Aggiornamento dello snapshot (secondi)",
           "dashboard": "Dashboard",
           "view_path": "Percorso della vista (facoltativo)",
           "public_path": "Percorso pubblico",

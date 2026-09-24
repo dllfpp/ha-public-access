@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{title}}</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f7f9; --muted:#5d6673; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111418; --muted:#9aa5b3; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: {{width}}px; margin: 0 auto; padding: 0 0 24px; }
+  img { display: block; width: 100%; height: auto; }
+  footer { color: var(--muted); font-size: .75rem; text-align: center; padding: 8px 16px; }
+</style>
+</head>
+<body>
+<main>
+  <img src="{{base}}/snapshot.png?v={{version}}" alt="{{title}}" width="{{width}}" height="{{height}}">
+  <footer>Updated {{updated}} · read-only public view</footer>
+</main>
+</body>
+</html>

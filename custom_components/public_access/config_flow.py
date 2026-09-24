@@ -34,6 +34,8 @@ from .const import (
     CONF_FRAME_ANCESTORS,
     CONF_LICENSE_KEY,
     CONF_LICENSE_SERVER,
+    CONF_MODE,
+    CONF_SNAPSHOT_TTL,
     CONF_NOINDEX,
     CONF_PUBLIC_PATH,
     CONF_SHOW_DEVICES,
@@ -42,6 +44,9 @@ from .const import (
     DEFAULT_LICENSE_SERVER,
     DEFAULT_NOINDEX,
     DEFAULT_PUBLIC_PATH,
+    DEFAULT_SNAPSHOT_TTL,
+    MODE_LIVE,
+    MODE_SNAPSHOT,
     DOMAIN,
     RESERVED_PATHS,
 )
@@ -197,6 +202,28 @@ class PublicAccessOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_ENABLED, default=current.get(CONF_ENABLED, True)): bool,
+                vol.Required(
+                    CONF_MODE, default=current.get(CONF_MODE, MODE_LIVE)
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=MODE_LIVE, label="Live (sanitized)"),
+                            selector.SelectOptionDict(
+                                value=MODE_SNAPSHOT, label="Snapshot (photograph, unfiltered)"
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    CONF_SNAPSHOT_TTL,
+                    default=current.get(CONF_SNAPSHOT_TTL, DEFAULT_SNAPSHOT_TTL),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=60, max=86400, step=30, unit_of_measurement="s",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
                 vol.Required(
                     CONF_DASHBOARD, default=current.get(CONF_DASHBOARD)
                 ): selector.SelectSelector(

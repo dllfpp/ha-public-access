@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 _LOGGER = logging.getLogger(__name__)
 
 ASSETS_DIR = Path(__file__).parent / "assets"
-BUNDLED = ("index.html", "unavailable.html", "app.js", "app.css")
+BUNDLED = ("index.html", "snapshot.html", "unavailable.html", "app.js", "app.css")
 
 _CACHE: dict[str, str] = {}
 # The renderer payload, when a licensed one has been downloaded.

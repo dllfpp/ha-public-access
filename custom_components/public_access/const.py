@@ -18,6 +18,20 @@ CONF_FRAME_ANCESTORS: Final = "frame_ancestors"
 CONF_EARLIEST_DATE: Final = "earliest_date"
 CONF_SHOW_DEVICES: Final = "show_devices"
 
+# How the public page is produced. "live" renders sanitized data with our own
+# renderer; "snapshot" serves a photograph of the real dashboard taken by the
+# companion container. In snapshot mode the sanitizer protects nothing: whatever
+# is on the owner's screen is published as pixels.
+CONF_MODE: Final = "mode"
+MODE_LIVE: Final = "live"
+MODE_SNAPSHOT: Final = "snapshot"
+CONF_SNAPSHOT_TTL: Final = "snapshot_ttl"
+DEFAULT_SNAPSHOT_TTL: Final = 900
+# Where the companion writes, relative to the configuration directory.
+SNAPSHOT_DIR: Final = "public_access_snapshots"
+SNAPSHOT_IMAGE: Final = "dashboard.png"
+SNAPSHOT_REQUEST: Final = "render.request"
+
 DEFAULT_PUBLIC_PATH: Final = "public"
 # TODO before launch: replace with the production licence API hostname.
 DEFAULT_LICENSE_SERVER: Final = "https://api.example.com"

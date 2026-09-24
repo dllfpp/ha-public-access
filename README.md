@@ -156,6 +156,50 @@ cards work whether or not your stored preferences have been migrated to the unif
 
 ---
 
+## Snapshot mode: publish the dashboard exactly as it looks
+
+If you want the page to be *exactly* your dashboard — your theme, your layout, your custom HACS
+cards — switch the integration's **mode** to **Snapshot**. A small companion,
+[Public Access Snapshot](https://github.com/dllfpp/photov-snapshot), opens the published view in a
+headless browser on your own machine, photographs it, and the integration serves the photograph.
+
+|  | Live (default) | Snapshot |
+| --- | --- | --- |
+| Fidelity | Our renderer, close to Home Assistant | Pixel-perfect, including custom cards |
+| Interactive | Period switching, tooltips | A still image |
+| Mobile | Responsive layout | Scaled image |
+| What gets published | Only sanitized, allowlisted data | **Everything on the view, as pixels** |
+| Needs | Nothing extra | The add-on (HA OS / Supervised) or the container (HA Container) |
+
+**Read this before switching.** In snapshot mode the sanitizer protects nothing. A camera card, a map
+with your location, a person's name, an error message containing an entity id — if it is on that
+view, it is published. Build that dashboard deliberately for the public, and check the result in a
+private window.
+
+**Setup on Home Assistant OS or Supervised** — most installations:
+
+1. Settings → Add-ons → Add-on store → three-dot menu → *Repositories* → add
+   `https://github.com/dllfpp/photov-snapshot`.
+2. Install **Public Access Snapshot**. In its configuration set `ha_token` to a long-lived access
+   token from a dedicated user, and `dashboard` to the view's URL path, e.g. `pv-public/pv`.
+   Start it.
+3. Settings → Devices & Services → Public Access → *Configure* → mode **Snapshot**.
+
+**Setup on Home Assistant Container:** use the `docker-compose.yml` in that repository, mounting your
+configuration directory.
+
+**What it costs.** The image is ~1 GB on disk (a browser is a browser). The browser only runs for
+the seconds of a capture: rendering is **on demand**, triggered when a visitor opens the page and the
+image is older than the configured refresh, so a dashboard nobody looks at costs nothing. Idle, the
+companion is a small Python process. Nothing is uploaded anywhere: the token and the image both stay
+on your machine.
+
+**What the visitor sees.** The view as your dashboard shows it by default — for energy cards that
+means the period Home Assistant opens on, usually today. The header, the view tabs and the sidebar
+are hidden, so the names of your other views are not revealed.
+
+---
+
 ## Configuration
 
 | Option | Default | What it does |

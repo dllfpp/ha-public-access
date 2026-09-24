@@ -18,7 +18,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import struct
 import time
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from aiohttp import web
@@ -31,10 +34,18 @@ from .const import (
     CONF_CACHE_SECONDS,
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
+    CONF_MODE,
     CONF_NOINDEX,
+    CONF_SNAPSHOT_TTL,
     DEFAULT_CACHE_SECONDS,
+    DEFAULT_SNAPSHOT_TTL,
+    MODE_LIVE,
+    MODE_SNAPSHOT,
     PERIODS,
     RATE_LIMIT_PER_MINUTE,
+    SNAPSHOT_DIR,
+    SNAPSHOT_IMAGE,
+    SNAPSHOT_REQUEST,
 )
 from .coordinator import PublicDashboardCoordinator
 
@@ -153,6 +164,10 @@ class PublicDashboardView(HomeAssistantView):
             )
 
         route = extra.strip("/")
+        if self._options.get(CONF_MODE, MODE_LIVE) == MODE_SNAPSHOT:
+            # In snapshot mode the data endpoints are switched off entirely: the
+            # page is a photograph, and the less surface the better.
+            return await self._snapshot(route)
         if route in ("", "index.html"):
             return await self._page()
         if route == "healthz":
@@ -177,6 +192,67 @@ class PublicDashboardView(HomeAssistantView):
             return self._decorate(
                 web.Response(text=assets.get("app.css"), content_type="text/css")
             )
+        return web.Response(text="404: Not Found", status=404)
+
+    async def _snapshot(self, route: str) -> web.Response:
+        """Serve the photograph taken by the companion container.
+
+        The image is read off the event loop. When it is older than the configured
+        refresh, a request file is dropped for the companion, which renders on
+        demand — so a page nobody opens never costs a capture. That touch is the
+        only thing this integration ever writes, and it is to its own directory.
+        """
+        directory = Path(self.hass.config.path(SNAPSHOT_DIR))
+        image = directory / SNAPSHOT_IMAGE
+        ttl = int(self._options.get(CONF_SNAPSHOT_TTL, DEFAULT_SNAPSHOT_TTL))
+        want_bytes = route == "snapshot.png"
+
+        def _read() -> tuple[bytes, float, tuple[int, int]]:
+            try:
+                stat = image.stat()
+            except OSError:
+                return b"", 0.0, (0, 0)
+            if time.time() - stat.st_mtime > ttl:
+                try:
+                    (directory / SNAPSHOT_REQUEST).touch()
+                except OSError:
+                    _LOGGER.debug("Could not request a new snapshot", exc_info=True)
+            with image.open("rb") as handle:
+                head = handle.read(24)
+                size = (0, 0)
+                if head[:8] == b"\x89PNG\r\n\x1a\n" and len(head) >= 24:
+                    size = struct.unpack(">II", head[16:24])
+                data = head + handle.read() if want_bytes else b""
+            return data, stat.st_mtime, size
+
+        data, mtime, (width, height) = await self.hass.async_add_executor_job(_read)
+
+        if route == "healthz":
+            return self._json(
+                {"status": "ok", "path": self.public_path, "mode": MODE_SNAPSHOT, "snapshot_at": mtime or None}
+            )
+        if not mtime:
+            return self._unavailable(
+                "The first snapshot has not been taken yet. Check that the "
+                "Public Access Snapshot add-on is running."
+            )
+        if want_bytes:
+            response = web.Response(body=data, content_type="image/png")
+            response.headers["ETag"] = f'"{int(mtime)}"'
+            return self._decorate(response)
+        if route in ("", "index.html"):
+            updated = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            title = self._options.get("title") or "Dashboard"
+            html = (
+                assets.get("snapshot.html")
+                .replace("{{title}}", _escape(str(title)))
+                .replace("{{base}}", f"/{self.public_path}")
+                .replace("{{version}}", str(int(mtime)))
+                .replace("{{width}}", str(width or 1280))
+                .replace("{{height}}", str(height or 800))
+                .replace("{{updated}}", updated)
+            )
+            return self._decorate(web.Response(text=html, content_type="text/html"))
         return web.Response(text="404: Not Found", status=404)
 
     async def _page(self) -> web.Response:
