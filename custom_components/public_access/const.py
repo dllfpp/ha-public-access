@@ -7,6 +7,7 @@ from typing import Final
 DOMAIN: Final = "public_access"
 
 CONF_LICENSE_KEY: Final = "license_key"
+CONF_LICENSE_SERVER: Final = "license_server"
 CONF_DASHBOARD: Final = "dashboard"
 CONF_VIEW_PATH: Final = "view_path"
 CONF_PUBLIC_PATH: Final = "public_path"
@@ -18,6 +19,11 @@ CONF_EARLIEST_DATE: Final = "earliest_date"
 CONF_SHOW_DEVICES: Final = "show_devices"
 
 DEFAULT_PUBLIC_PATH: Final = "public"
+# TODO before launch: replace with the production licence API hostname.
+DEFAULT_LICENSE_SERVER: Final = "https://api.example.com"
+# How often the integration re-checks the subscription. The server also refuses
+# to be polled harder than this.
+LICENSE_REFRESH_HOURS: Final = 12
 DEFAULT_CACHE_SECONDS: Final = 300
 DEFAULT_NOINDEX: Final = True
 
@@ -79,3 +85,6 @@ PERIODS: Final[dict[str, tuple[str, int]]] = {
     "month": ("day", 30),
     "year": ("month", 365),
 }
+
+# Service exposed so support can tell a customer "reload the licence now".
+SERVICE_REFRESH_LICENSE: Final = "refresh_license"

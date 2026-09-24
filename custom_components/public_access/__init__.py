@@ -5,12 +5,25 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from . import data as ha_data
-from .const import CONF_LICENSE_KEY, CONF_PUBLIC_PATH, DOMAIN
+from datetime import timedelta
+
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.loader import async_get_integration
+
+from . import assets, data as ha_data
+from .const import (
+    CONF_LICENSE_KEY,
+    CONF_LICENSE_SERVER,
+    CONF_PUBLIC_PATH,
+    DEFAULT_LICENSE_SERVER,
+    DOMAIN,
+    LICENSE_REFRESH_HOURS,
+    SERVICE_REFRESH_LICENSE,
+)
 from .coordinator import PublicDashboardCoordinator
 from .license import LicenseManager
 from .view import PublicDashboardView
@@ -37,10 +50,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up one published dashboard."""
     domain_data = hass.data.setdefault(DOMAIN, {DATA_REGISTERED_PATHS: {}})
 
+    # Read every static file now, off the event loop: serving a request must never
+    # touch the filesystem.
+    await assets.async_preload(hass)
+
+    integration = await async_get_integration(hass, DOMAIN)
     licence = LicenseManager(
         hass,
         entry.data.get(CONF_LICENSE_KEY, ""),
         ha_data.instance_fingerprint(hass),
+        {**entry.data, **entry.options}.get(CONF_LICENSE_SERVER, DEFAULT_LICENSE_SERVER),
+        plugin_version=str(integration.version or ""),
     )
     await licence.async_load()
     if not licence.state.may_serve:
@@ -53,21 +73,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     domain_data[entry.entry_id] = {DATA_COORDINATOR: coordinator}
 
     public_path = {**entry.data, **entry.options}.get(CONF_PUBLIC_PATH)
-    registered: dict[str, str] = domain_data[DATA_REGISTERED_PATHS]
+    # path -> (entry_id, view). The view is kept so a path claimed earlier in this
+    # run can be pointed at a new coordinator instead of staying dead.
+    registered: dict[str, tuple[str, PublicDashboardView]] = domain_data[
+        DATA_REGISTERED_PATHS
+    ]
 
-    if public_path and public_path not in registered:
-        # aiohttp cannot unregister a route, so each path is claimed once per restart.
-        hass.http.register_view(PublicDashboardView(hass, public_path, coordinator))
-        registered[public_path] = entry.entry_id
-        _LOGGER.info(
-            "Public Access is serving /%s (read-only, unauthenticated)", public_path
-        )
-    elif public_path and registered.get(public_path) != entry.entry_id:
-        _LOGGER.error("The path /%s is already claimed by another entry", public_path)
+    if public_path:
+        if public_path in registered:
+            _, view = registered[public_path]
+            view.rebind(coordinator)
+            registered[public_path] = (entry.entry_id, view)
+            _LOGGER.info("Public Access reattached to /%s", public_path)
+        else:
+            # aiohttp cannot unregister a route: a path is claimed once per restart.
+            view = PublicDashboardView(hass, public_path, coordinator)
+            hass.http.register_view(view)
+            registered[public_path] = (entry.entry_id, view)
+            _LOGGER.info(
+                "Public Access is serving /%s (read-only, unauthenticated)", public_path
+            )
 
     stale = [
         path
-        for path, owner in registered.items()
+        for path, (owner, _view) in registered.items()
         if owner == entry.entry_id and path != public_path
     ]
     if stale:
@@ -95,6 +124,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.bus.async_listen(EVENT_LOVELACE_UPDATED, _dashboard_changed)
     )
     entry.async_on_unload(entry.add_update_listener(_options_updated))
+
+    async def _refresh_licence(_now) -> None:
+        """Re-check the subscription. A failure here is not fatal: the cached
+        entitlement carries the page through until it expires, and then through
+        the grace period."""
+        await licence.async_refresh()
+
+    entry.async_on_unload(
+        async_track_time_interval(
+            hass, _refresh_licence, timedelta(hours=LICENSE_REFRESH_HOURS)
+        )
+    )
+
+    async def _handle_refresh(_call: ServiceCall) -> None:
+        """Re-check the subscription now.
+
+        Without this, someone who has just paid, or just had a licence released,
+        waits up to half a day for the page to come back.
+        """
+        await licence.async_refresh(force=True)
+        coordinator.invalidate()
+
+    hass.services.async_register(DOMAIN, SERVICE_REFRESH_LICENSE, _handle_refresh)
     return True
 
 

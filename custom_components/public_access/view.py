@@ -19,8 +19,6 @@ import hashlib
 import json
 import logging
 import time
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 from aiohttp import web
@@ -28,6 +26,7 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
+from . import assets
 from .const import (
     CONF_CACHE_SECONDS,
     CONF_ENABLED,
@@ -40,14 +39,6 @@ from .const import (
 from .coordinator import PublicDashboardCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-ASSETS = Path(__file__).parent / "assets"
-
-
-@lru_cache(maxsize=8)
-def _asset(name: str) -> str:
-    """Read a bundled asset once."""
-    return (ASSETS / name).read_text(encoding="utf-8")
 
 
 class RateLimiter:
@@ -91,6 +82,17 @@ class PublicDashboardView(HomeAssistantView):
         self._coordinator = coordinator
         self._limiter = RateLimiter()
 
+    def rebind(self, coordinator: PublicDashboardCoordinator) -> None:
+        """Point this route at a new config entry's coordinator.
+
+        aiohttp cannot unregister a route, so when the integration is removed and
+        added again without a restart the original view object is still the one
+        serving this path. Without rebinding, the path would answer 404 forever
+        even though the integration is configured — and removing and re-adding is
+        the first thing anyone tries when something looks wrong.
+        """
+        self._coordinator = coordinator
+
     # -- helpers ---------------------------------------------------------------
 
     @property
@@ -126,7 +128,7 @@ class PublicDashboardView(HomeAssistantView):
         return self._decorate(response)
 
     def _unavailable(self, message: str) -> web.Response:
-        html = _asset("unavailable.html").replace("{{message}}", message)
+        html = assets.get("unavailable.html").replace("{{message}}", message)
         response = web.Response(text=html, content_type="text/html", status=503)
         response.headers["Cache-Control"] = "no-store"
         return response
@@ -167,13 +169,13 @@ class PublicDashboardView(HomeAssistantView):
         if route == "app.js":
             return self._decorate(
                 web.Response(
-                    text=self._coordinator.renderer_js(),
+                    text=assets.renderer_js(),
                     content_type="application/javascript",
                 )
             )
         if route == "app.css":
             return self._decorate(
-                web.Response(text=_asset("app.css"), content_type="text/css")
+                web.Response(text=assets.get("app.css"), content_type="text/css")
             )
         return web.Response(text="404: Not Found", status=404)
 
@@ -182,7 +184,7 @@ class PublicDashboardView(HomeAssistantView):
         config = await self._coordinator.async_public_config()
         title = config.get("dashboard", {}).get("title") or "Dashboard"
         html = (
-            _asset("index.html")
+            assets.get("index.html")
             .replace("{{title}}", _escape(title))
             .replace("{{base}}", f"/{self.public_path}")
             .replace("{{bootstrap}}", json.dumps(config, default=str))

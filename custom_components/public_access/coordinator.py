@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -30,7 +29,6 @@ from .sanitize import SanitizedDashboard, sanitize_dashboard, uses_energy_cards
 
 _LOGGER = logging.getLogger(__name__)
 
-ASSETS = Path(__file__).parent / "assets"
 
 
 class PublicDashboardCoordinator:
@@ -239,27 +237,6 @@ class PublicDashboardCoordinator:
                 "generated_at": dt_util.utcnow().isoformat(),
             },
         )
-
-    # -- renderer --------------------------------------------------------------
-
-    def renderer_js(self) -> str:
-        """The renderer served to the browser.
-
-        The production renderer is delivered as a signed payload from the licence
-        server (milestone M2/M3) and cached under .storage. Until then, and as the
-        permanent fallback when no payload is available, the minimal renderer
-        bundled with this repository is used.
-        """
-        payload = self.hass.config.path(
-            ".storage", "public_access", "payload", "app.js"
-        )
-        try:
-            text = Path(payload).read_text(encoding="utf-8")
-            if text.strip():
-                return text
-        except OSError:
-            pass
-        return (ASSETS / "app.js").read_text(encoding="utf-8")
 
     # -- owner-facing ----------------------------------------------------------
 

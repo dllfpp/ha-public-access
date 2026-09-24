@@ -5,12 +5,14 @@ here **offline** against a pinned public key, so a licence-server outage can nev
 take down a customer's public page: a cached entitlement keeps working until it
 expires, and then for a grace period on top.
 
-The signature verification below is real. What is still stubbed (milestone M3) is
-the network call that obtains the entitlement — see `async_refresh`.
+Nothing about the customer's home is sent: the licence key, a salted hash of the
+Home Assistant instance id, and the two version numbers. No dashboard data, no
+entity names, nothing about what is published.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -18,7 +20,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+import aiohttp
+
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,21 +31,27 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_VERSION = 1
 STORAGE_KEY = "public_access.license"
 
-# Pinned issuer key. Replaced with the production key when the licence server is
-# deployed (M3); an empty value means "unsigned development mode".
-ISSUER_PUBLIC_KEY_B64: str = ""
+# The licence server's Ed25519 public key. Entitlements are verified against this
+# without contacting anyone, which is what makes the grace period possible.
+ISSUER_PUBLIC_KEY_B64: str = "VkikGmFVRvr2_r6Y--EWPdsIzy2k7Eiaq6XaYHgstXg"
 
 ENTITLEMENT_PREFIX = "PA1"
 GRACE_SECONDS = 14 * 24 * 3600
+REFRESH_INTERVAL_SECONDS = 12 * 3600
+REQUEST_TIMEOUT = 20
 
 STATUS_ACTIVE = "active"
 STATUS_TRIALING = "trialing"
+STATUS_PAST_DUE = "past_due"
 STATUS_GRACE = "grace"
 STATUS_EXPIRED = "expired"
 STATUS_INVALID = "invalid"
 STATUS_UNLICENSED = "unlicensed"
+STATUS_OFFLINE = "offline"
 
-SERVING_STATUSES = frozenset({STATUS_ACTIVE, STATUS_TRIALING, STATUS_GRACE})
+SERVING_STATUSES = frozenset(
+    {STATUS_ACTIVE, STATUS_TRIALING, STATUS_PAST_DUE, STATUS_GRACE}
+)
 
 
 @dataclass
@@ -52,6 +63,7 @@ class LicenseState:
     expires_at: float | None = None
     features: set[str] = field(default_factory=set)
     message: str | None = None
+    last_check: float | None = None
 
     @property
     def may_serve(self) -> bool:
@@ -65,6 +77,7 @@ class LicenseState:
             "expires_at": self.expires_at,
             "features": sorted(self.features),
             "message": self.message,
+            "last_check": self.last_check,
         }
 
 
@@ -140,7 +153,10 @@ def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseStat
         )
     if status not in SERVING_STATUSES:
         return LicenseState(
-            status=STATUS_INVALID, plan=plan, expires_at=expires_at, message="Subscription inactive."
+            status=STATUS_INVALID,
+            plan=plan,
+            expires_at=expires_at,
+            message="Subscription inactive.",
         )
     return LicenseState(status=status, plan=plan, expires_at=expires_at, features=features)
 
@@ -148,56 +164,135 @@ def state_from_payload(payload: dict[str, Any], fingerprint: str) -> LicenseStat
 class LicenseManager:
     """Holds the current licence state and knows how to refresh it."""
 
-    def __init__(self, hass: HomeAssistant, license_key: str, fingerprint: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        license_key: str,
+        fingerprint: str,
+        server_url: str,
+        plugin_version: str = "",
+    ) -> None:
         self._hass = hass
-        self._key = license_key
+        self._key = license_key.strip()
         self._fingerprint = fingerprint
+        self._server = server_url.rstrip("/")
+        self._plugin_version = plugin_version
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._cached: dict[str, Any] = {}
+        self._lock = asyncio.Lock()
         self.state = LicenseState()
+        self.payload_version: str | None = None
+
+    # -- public API ------------------------------------------------------------
 
     async def async_load(self) -> LicenseState:
-        """Restore a cached entitlement, then try to refresh it."""
-        cached = await self._store.async_load() or {}
-        token = cached.get("entitlement")
+        """Restore a cached entitlement, then refresh it if it is due."""
+        self._cached = await self._store.async_load() or {}
+        token = self._cached.get("entitlement")
         if isinstance(token, str):
             payload = verify_entitlement(token, ISSUER_PUBLIC_KEY_B64)
             if payload:
                 self.state = state_from_payload(payload, self._fingerprint)
+                self.state.last_check = self._cached.get("last_check")
+        self.payload_version = self._cached.get("payload_version")
         await self.async_refresh()
         return self.state
 
-    async def async_refresh(self) -> LicenseState:
-        """Obtain a fresh entitlement from the licence server.
+    async def async_refresh(self, force: bool = False) -> LicenseState:
+        """Contact the licence server if due, and apply whatever it says."""
+        async with self._lock:
+            if self._key.startswith("DEV-"):
+                self.state = LicenseState(
+                    status=STATUS_ACTIVE,
+                    plan="development",
+                    features={"energy", "generic-cards"},
+                    message="Development licence: no licence server contacted.",
+                    last_check=time.time(),
+                )
+                return self.state
 
-        M3: POST the licence key and instance fingerprint to /v1/activate (first
-        run) or /v1/heartbeat (subsequently), store the returned entitlement, and
-        keep the cached one on any network error so the grace period applies.
+            if not self._key:
+                self.state = LicenseState(
+                    status=STATUS_UNLICENSED, message="No licence key configured."
+                )
+                return self.state
 
-        Until the licence server exists, a key prefixed `DEV-` unlocks the plugin
-        locally so the rest of the integration can be developed and tested.
-        """
-        if self._key.startswith("DEV-"):
-            self.state = LicenseState(
-                status=STATUS_ACTIVE,
-                plan="development",
-                expires_at=None,
-                features={"energy", "generic-cards"},
-                message="Development licence: no licence server contacted.",
-            )
+            last_check = self._cached.get("last_check") or 0
+            if not force and (time.time() - last_check) < REFRESH_INTERVAL_SECONDS:
+                return self.state
+
+            endpoint = "activate" if not self._cached.get("activated") else "heartbeat"
+            try:
+                await self._call(endpoint)
+            except _LicenseRefused as refused:
+                # The server has spoken: stop serving, and forget the cached
+                # entitlement so a restart cannot resurrect it.
+                self.state = LicenseState(status=STATUS_INVALID, message=refused.message)
+                self._cached = {"activated": self._cached.get("activated", False)}
+                await self._store.async_save(self._cached)
+            except Exception as error:  # noqa: BLE001 - network, DNS, timeouts
+                _LOGGER.warning(
+                    "Could not reach the licence server (%s); "
+                    "continuing on the cached entitlement",
+                    error,
+                )
+                if not self.state.may_serve and self.state.status == STATUS_UNLICENSED:
+                    self.state = LicenseState(
+                        status=STATUS_OFFLINE,
+                        message=(
+                            "Could not reach the licence server and there is no "
+                            "cached entitlement yet."
+                        ),
+                    )
             return self.state
 
-        if not self._key:
-            self.state = LicenseState(
-                status=STATUS_UNLICENSED, message="No licence key configured."
-            )
-            return self.state
+    # -- internals -------------------------------------------------------------
 
-        if self.state.status == STATUS_UNLICENSED:
-            self.state = LicenseState(
-                status=STATUS_INVALID,
-                message=(
-                    "Licence validation is not available yet in this build. "
-                    "Use a DEV- key for local testing."
-                ),
-            )
-        return self.state
+    async def _call(self, endpoint: str) -> None:
+        session = async_get_clientsession(self._hass)
+        url = f"{self._server}/v1/{endpoint}"
+        body = {
+            "license_key": self._key,
+            "fingerprint": self._fingerprint,
+            "plugin_version": self._plugin_version,
+            "ha_version": getattr(self._hass.config, "as_dict", dict)().get("version", ""),
+        }
+        async with session.post(
+            url, json=body, timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+        ) as response:
+            if response.status == 403:
+                detail = "This licence is not valid."
+                try:
+                    detail = (await response.json()).get("detail", detail)
+                except Exception:  # noqa: BLE001
+                    pass
+                raise _LicenseRefused(detail)
+            response.raise_for_status()
+            data = await response.json()
+
+        token = data.get("entitlement", "")
+        payload = verify_entitlement(token, ISSUER_PUBLIC_KEY_B64)
+        if payload is None:
+            raise RuntimeError("the licence server returned an entitlement we cannot verify")
+
+        self.state = state_from_payload(payload, self._fingerprint)
+        self.state.last_check = time.time()
+        self.payload_version = data.get("payload_version")
+        self._cached = {
+            "entitlement": token,
+            "last_check": self.state.last_check,
+            "activated": True,
+            "payload_version": self.payload_version,
+        }
+        await self._store.async_save(self._cached)
+        _LOGGER.info(
+            "Licence check succeeded: %s (%s)", self.state.status, self.state.plan
+        )
+
+
+class _LicenseRefused(Exception):
+    """The server refused this licence; it is not a transient failure."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message

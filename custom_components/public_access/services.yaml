@@ -1,0 +1,5 @@
+refresh_license:
+  name: Refresh licence
+  description: >-
+    Re-check the subscription with the licence server immediately, instead of
+    waiting for the next scheduled check.

@@ -4,7 +4,7 @@
       "user": {
         "title": "Public Access",
         "description": "Inserisci la chiave di abbonamento. In fase di sviluppo funziona offline qualsiasi chiave che inizia con DEV-.",
-        "data": { "license_key": "Chiave di abbonamento" }
+        "data": { "license_key": "Chiave di abbonamento", "license_server": "Server licenze (avanzato)" }
       },
       "dashboard": {
         "title": "Scegli cosa pubblicare",
