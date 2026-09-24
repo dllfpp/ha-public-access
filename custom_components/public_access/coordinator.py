@@ -8,6 +8,7 @@ reference instance, so this is about absorbing traffic spikes, not latency.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -238,6 +239,31 @@ class PublicDashboardCoordinator:
             },
         )
 
+    async def async_mirror_allowlists(self) -> tuple[set[str] | None, set[str] | None]:
+        """What the mirrored frontend may read: every entity and statistic the
+        published view refers to, plus the energy preferences' statistics.
+
+        This scans the raw view rather than the sanitized one: in mirror mode
+        the real frontend draws every card, custom ones included, so their
+        entities must be readable — but nothing outside the view is.
+        """
+        url_path = self.options.get(CONF_DASHBOARD)
+        config = await ha_data.async_load_dashboard_config(self.hass, url_path) if url_path else None
+        if not config:
+            return set(), set()
+        view_path = self.options.get(CONF_VIEW_PATH) or None
+        chosen = None
+        for view in config.get("views", []) or []:
+            if isinstance(view, dict) and (view_path is None or view.get("path") == view_path):
+                chosen = view
+                break
+        entities, statistics = _referenced_ids(chosen or {})
+        prefs = await ha_data.async_energy_prefs(self.hass)
+        statistics |= ha_data.energy_statistic_ids(prefs)
+        # Statistics of plain sensors share the entity id.
+        statistics |= entities
+        return entities, statistics
+
     # -- owner-facing ----------------------------------------------------------
 
     async def async_owner_report(self) -> dict[str, Any]:
@@ -257,3 +283,35 @@ class PublicDashboardCoordinator:
                 "offered": self._licence.payload_version,
             },
         }
+
+
+_ENTITY_RE = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
+_STATISTIC_RE = re.compile(r"^[a-z0-9_]+:[a-z0-9_]+$")
+
+
+def _referenced_ids(node: Any) -> tuple[set[str], set[str]]:
+    """Every entity id and external statistic id mentioned anywhere in a view.
+
+    Card configs are free-form, especially custom cards, so this looks at every
+    string value rather than known keys. Over-including a string that merely
+    looks like an entity id costs nothing: it only widens the read allowlist to
+    something the owner wrote into the view themselves.
+    """
+    entities: set[str] = set()
+    statistics: set[str] = set()
+
+    def walk(value: Any) -> None:
+        if isinstance(value, str):
+            if _ENTITY_RE.match(value):
+                entities.add(value)
+            elif _STATISTIC_RE.match(value):
+                statistics.add(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(node)
+    return entities, statistics

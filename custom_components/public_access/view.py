@@ -32,14 +32,17 @@ from homeassistant.core import HomeAssistant
 from . import assets
 from .const import (
     CONF_CACHE_SECONDS,
+    CONF_DASHBOARD,
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
     CONF_MODE,
     CONF_NOINDEX,
     CONF_SNAPSHOT_TTL,
+    CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
     DEFAULT_SNAPSHOT_TTL,
     MODE_LIVE,
+    MODE_MIRROR,
     MODE_SNAPSHOT,
     PERIODS,
     RATE_LIMIT_PER_MINUTE,
@@ -164,7 +167,10 @@ class PublicDashboardView(HomeAssistantView):
             )
 
         route = extra.strip("/")
-        if self._options.get(CONF_MODE, MODE_LIVE) == MODE_SNAPSHOT:
+        mode = self._options.get(CONF_MODE, MODE_LIVE)
+        if mode == MODE_MIRROR:
+            return await self._mirror(request, route)
+        if mode == MODE_SNAPSHOT:
             # In snapshot mode the data endpoints are switched off entirely: the
             # page is a photograph, and the less surface the better.
             return await self._snapshot(route)
@@ -193,6 +199,41 @@ class PublicDashboardView(HomeAssistantView):
                 web.Response(text=assets.get("app.css"), content_type="text/css")
             )
         return web.Response(text="404: Not Found", status=404)
+
+    async def _mirror(self, request: web.Request, route: str) -> web.StreamResponse:
+        """Home Assistant's real frontend over a read-only websocket proxy.
+
+        Routes: the page itself (any sub-path, since the frontend routes views
+        client-side) and `ws`, the websocket the page is steered to.
+        """
+        from . import mirror
+
+        options = self._options
+        dashboard = options.get(CONF_DASHBOARD) or ""
+        view_path = options.get(CONF_VIEW_PATH) or None
+
+        if route == "ws":
+            entity_ids, statistic_ids = await self._coordinator.async_mirror_allowlists()
+            return await mirror.async_serve_websocket(
+                self.hass,
+                request,
+                public_path=self.public_path,
+                dashboard=dashboard,
+                view_path=view_path,
+                entity_ids=entity_ids,
+                statistic_ids=statistic_ids,
+            )
+        if route == "healthz":
+            return self._json({"status": "ok", "path": self.public_path, "mode": MODE_MIRROR})
+        html = await mirror.async_render_page(self.hass, self.public_path)
+        response = web.Response(text=html, content_type="text/html")
+        # The frontend loads scripts from the same origin and inlines none of
+        # ours except the bootstrap, so the policy stays tight but must allow
+        # websockets and the frontend's own assets.
+        response.headers["Cache-Control"] = "no-store"
+        if options.get(CONF_NOINDEX, True):
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        return response
 
     async def _snapshot(self, route: str) -> web.Response:
         """Serve the photograph taken by the companion container.

@@ -46,6 +46,7 @@ from .const import (
     DEFAULT_PUBLIC_PATH,
     DEFAULT_SNAPSHOT_TTL,
     MODE_LIVE,
+    MODE_MIRROR,
     MODE_SNAPSHOT,
     DOMAIN,
     RESERVED_PATHS,
@@ -210,6 +211,9 @@ class PublicAccessOptionsFlow(OptionsFlow):
                             selector.SelectOptionDict(value=MODE_LIVE, label="Live (sanitized)"),
                             selector.SelectOptionDict(
                                 value=MODE_SNAPSHOT, label="Snapshot (photograph, unfiltered)"
+                            ),
+                            selector.SelectOptionDict(
+                                value=MODE_MIRROR, label="Mirror (real frontend, read-only)"
                             ),
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,

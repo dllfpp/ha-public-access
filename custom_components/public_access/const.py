@@ -25,6 +25,10 @@ CONF_SHOW_DEVICES: Final = "show_devices"
 CONF_MODE: Final = "mode"
 MODE_LIVE: Final = "live"
 MODE_SNAPSHOT: Final = "snapshot"
+# "mirror" serves Home Assistant's real frontend through a read-only websocket
+# proxy: exactly what the owner sees, live, with nothing forwarded that could
+# change anything. See mirror.py.
+MODE_MIRROR: Final = "mirror"
 CONF_SNAPSHOT_TTL: Final = "snapshot_ttl"
 DEFAULT_SNAPSHOT_TTL: Final = 900
 # Where the companion writes, relative to the configuration directory.
