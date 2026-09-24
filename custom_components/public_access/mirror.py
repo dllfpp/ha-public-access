@@ -253,6 +253,10 @@ class MirrorSession:
     def _filter_outbound(self, message: dict[str, Any]) -> dict[str, Any] | None:
         msg_id = message.get("id")
         kind = self._types.get(msg_id, "")
+        if message.get("type") == "result" and message.get("success") is False:
+            # Diagnostics: an error Home Assistant itself returned to a forwarded
+            # message. These surface in the page as unhandled rejections.
+            _LOGGER.debug("Mirror: HA answered %s with %s", kind, message.get("error"))
         if message.get("type") == "result" and isinstance(message.get("result"), (list, dict)):
             result = message["result"]
             if kind == "get_states":
