@@ -91,8 +91,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         wanted = license.payload_version
         if not wanted or not license.state.may_serve:
             return
-        if wanted == assets.installed_version():
+        if wanted == assets.installed_version() and assets.mirror_core() is not None:
             return
+        # Same version but no mirror glue: it was installed by a plugin older
+        # than 0.3, which kept only the renderer. Fetch it again, whole.
         await payload.async_install(
             hass,
             server_url=server_url,
