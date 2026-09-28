@@ -101,15 +101,11 @@ never downloads it: HACS installs only `custom_components/public_access`.
 
 ---
 
-## Three ways to publish
+## How the page is made
 
-Chosen in the integration's options (*Configure*). Almost everyone stays on the default.
-
-| Mode | The visitor gets | Pick it when |
-| --- | --- | --- |
-| **Mirror** (default) | Your real dashboard, live, read-only | Almost always — exact layout, custom cards, animations |
-| **Live** | A lighter page drawn by our own renderer from filtered data | You want only known card types, never anything else |
-| **Snapshot** | A picture of the dashboard, refreshed on demand | The visitor's browser must never hold a live connection |
+The visitor gets **Home Assistant's own frontend**, showing your dashboard live — same theme, same
+layout, custom cards and animations included — without header, sidebar or anything to press. Nothing
+is redrawn or approximated: it is your dashboard, read-only.
 
 ## Options
 
@@ -119,8 +115,7 @@ Chosen in the integration's options (*Configure*). Almost everyone stays on the 
 | Dashboard, view to publish | — | What is public |
 | Public path | `public` | Where it is public |
 | Ask search engines not to index it | on | Keeps the page out of Google and friends |
-| Include device consumption | on | Off hides the per-device energy breakdown |
-| Cache duration | 300 s | How long a page is reused, so visitors never load your database |
+| Allowed embedding origins | — | Sites allowed to show the page in a frame (see below) |
 
 Each visitor address is limited to 60 requests a minute.
 
@@ -147,6 +142,13 @@ make any change, save.
 
 **The page loads forever.** Reload with the cache cleared (Ctrl/Cmd + Shift + R). If it persists,
 [open an issue](https://github.com/dllfpp/ha-public-access/issues) with your Home Assistant version.
+
+**After opening the public page, my own Home Assistant answers 403.** Versions before September 2026
+stored the public page's placeholder login in your browser, where your real Home Assistant then found
+and rejected it until its login protection blocked the address. Current versions never store it and
+clean up what older ones left. To recover: remove the address from `ip_bans.yaml` in your
+configuration folder (or restore a backup) and restart; then clear the site data of your Home
+Assistant address in any browser that opened the public page.
 
 ---
 
@@ -179,23 +181,6 @@ reinstall.
 </details>
 
 <details>
-<summary><b>Snapshot mode setup</b></summary>
-
-Snapshot mode needs a small companion that photographs the view on your own machine:
-
-1. *Settings → Add-ons → Add-on store → ⋮ → Repositories* → add
-   `https://github.com/dllfpp/photov-snapshot`.
-2. Install **Public Access Snapshot**. Set `ha_token` to a long-lived access token of a dedicated
-   user, and `dashboard` to the view's address, e.g. `energy-public/solar`. Start it.
-3. In Public Access *Configure*, choose mode **Snapshot**.
-
-On Home Assistant Container, use the `docker-compose.yml` of that repository. The companion's browser
-only runs during a capture, when a visitor opens the page and the picture is older than the refresh
-interval. For a tidy picture use a **Sections** view with `max_columns: 2`.
-
-</details>
-
-<details>
 <summary><b>Embedding the page in your own website</b></summary>
 
 Home Assistant forbids framing its pages (`X-Frame-Options: SAMEORIGIN`), and an integration cannot
@@ -217,26 +202,11 @@ Then set **Allowed embedding origins** in the options, e.g. `'self' https://www.
 </details>
 
 <details>
-<summary><b>Live mode: supported cards</b></summary>
-
-Live mode draws the page itself from filtered data, so it supports a fixed set of cards; anything
-else shows as a placeholder. Mirror and snapshot modes show every card, custom ones included.
-
-| Category | Cards |
-| --- | --- |
-| Text and layout | `markdown`, `heading`, `grid`, `vertical-stack`, `horizontal-stack` |
-| Current values | `tile`, `entities`, `glance`, `gauge`, `sensor` |
-| Charts | `statistics-graph`, `history-graph`, `statistic` |
-| Energy | all energy cards, including `energy-sankey` and `energy-date-selection` |
-
-</details>
-
-<details>
 <summary><b>Security details and reporting a vulnerability</b></summary>
 
 The allowlist of forwarded messages is in
-[`mirror.py`](custom_components/public_access/mirror.py) and the live-mode sanitizer in
-[`sanitize.py`](custom_components/public_access/sanitize.py). The test suite checks, among other
+[`mirror.py`](custom_components/public_access/mirror.py); the checks on views and the default
+dashboard in [`sanitize.py`](custom_components/public_access/sanitize.py). The test suite checks, among other
 things, that the package contains no write-capable call, that a missing view publishes nothing rather
 than another view, and that the owner's default dashboard never reaches the visitor.
 

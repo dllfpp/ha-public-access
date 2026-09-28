@@ -17,7 +17,7 @@ Two independent layers make it read-only:
 
 No real token exists in the browser: the page seeds the frontend with a fake one,
 and this endpoint accepts it because it authenticates nobody — it is public by
-design, exactly like the live and snapshot modes.
+design.
 """
 
 from __future__ import annotations

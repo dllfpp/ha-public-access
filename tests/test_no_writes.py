@@ -82,16 +82,18 @@ def test_public_view_requires_no_auth_by_design_and_says_so():
     assert "requires_auth = False" in text
 
 
-def test_client_cannot_choose_statistic_ids():
-    """The only client-supplied parameter is the period, validated against an enum."""
+def test_the_visitor_supplies_no_parameters():
+    """The public page reads nothing from the query string: no entity, no
+    statistic, no date range can be asked for."""
     text = (PACKAGE / "view.py").read_text(encoding="utf-8")
-    assert 'request.query.get("period"' in text
-    assert "if period not in PERIODS" in text
-    for leak in ('query.get("entity', 'query.get("statistic', 'query.get("start'):
-        assert leak not in text
+    assert "request.query" not in text
 
 
-def test_state_attributes_are_whitelisted():
-    text = (PACKAGE / "data.py").read_text(encoding="utf-8")
-    assert "SAFE_ATTRIBUTES" in text
-    assert "if key in SAFE_ATTRIBUTES" in text
+def test_the_mirror_filters_what_home_assistant_answers():
+    """States, the entity registry, history and statistics are cut down to what
+    the published view uses before they reach the visitor."""
+    text = (PACKAGE / "mirror.py").read_text(encoding="utf-8")
+    assert 'self._entity_allowed(s.get("entity_id"))' in text        # get_states
+    assert 'self._entity_allowed(e.get("entity_id"))' in text        # entity registry
+    assert "if s in self._statistics" in text                        # statistics
+    assert '"entity_ids": [e for e in wanted if self._entity_allowed(e)]' in text  # history

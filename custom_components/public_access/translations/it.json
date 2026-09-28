@@ -46,17 +46,13 @@
     "step": {
       "init": {
         "title": "Impostazioni di Public Access",
-        "description": "Mirror (il default) pubblica la tua dashboard reale, dal vivo, su una connessione in sola lettura. La modifica del percorso pubblico ha effetto dopo il riavvio di Home Assistant.\n\n**La modalità snapshot pubblica una fotografia della dashboard reale, scattata dall'add-on Public Access Snapshot. Nulla viene filtrato: tutto ciò che è in quella vista diventa pubblico in pixel — una telecamera, una mappa con la tua posizione, un nome. Costruisci quella dashboard apposta per il pubblico.**",
+        "description": "La dashboard è pubblicata con il frontend di Home Assistant, dal vivo e in sola lettura: i visitatori vedono esattamente la vista scelta e non possono cambiare nulla. Il cambio del percorso pubblico ha effetto dopo il riavvio di Home Assistant.",
         "data": {
           "enabled": "Pubblica la dashboard",
-          "mode": "Come viene prodotta la pagina",
-          "snapshot_ttl": "Aggiornamento dello snapshot (secondi)",
           "dashboard": "Dashboard",
           "view_path": "Vista da pubblicare (una scheda della dashboard)",
           "public_path": "Percorso pubblico (la parte dopo l’indirizzo del tuo Home Assistant)",
           "noindex": "Chiedi ai motori di ricerca di non indicizzarla",
-          "show_devices": "Includi i consumi dei singoli dispositivi",
-          "cache_seconds": "Durata della cache",
           "frame_ancestors": "Origini autorizzate all'incorporamento (CSP frame-ancestors)"
         }
       }

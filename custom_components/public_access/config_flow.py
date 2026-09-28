@@ -30,26 +30,16 @@ from homeassistant.loader import async_get_integration
 from . import data as ha_data
 from .license import STATUS_OFFLINE, LicenseManager
 from .const import (
-    CONF_CACHE_SECONDS,
     CONF_DASHBOARD,
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
     CONF_LICENSE_KEY,
-    CONF_MODE,
-    CONF_SNAPSHOT_TTL,
     CONF_NOINDEX,
     CONF_PUBLIC_PATH,
-    CONF_SHOW_DEVICES,
     CONF_VIEW_PATH,
-    DEFAULT_CACHE_SECONDS,
     DEFAULT_LICENSE_SERVER,
-    DEFAULT_MODE,
     DEFAULT_NOINDEX,
     DEFAULT_PUBLIC_PATH,
-    DEFAULT_SNAPSHOT_TTL,
-    MODE_LIVE,
-    MODE_MIRROR,
-    MODE_SNAPSHOT,
     DOMAIN,
     RESERVED_PATHS,
     TRIAL_URL,
@@ -236,10 +226,7 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
                     data=self._data,
                     options={
                         CONF_ENABLED: True,
-                        CONF_MODE: DEFAULT_MODE,
                         CONF_NOINDEX: DEFAULT_NOINDEX,
-                        CONF_CACHE_SECONDS: DEFAULT_CACHE_SECONDS,
-                        CONF_SHOW_DEVICES: True,
                     },
                 )
 
@@ -305,31 +292,6 @@ class PublicAccessOptionsFlow(OptionsFlow):
             {
                 vol.Required(CONF_ENABLED, default=current.get(CONF_ENABLED, True)): bool,
                 vol.Required(
-                    CONF_MODE, default=current.get(CONF_MODE, DEFAULT_MODE)
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(value=MODE_LIVE, label="Live (sanitized)"),
-                            selector.SelectOptionDict(
-                                value=MODE_SNAPSHOT, label="Snapshot (photograph, unfiltered)"
-                            ),
-                            selector.SelectOptionDict(
-                                value=MODE_MIRROR, label="Mirror (real frontend, read-only)"
-                            ),
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required(
-                    CONF_SNAPSHOT_TTL,
-                    default=current.get(CONF_SNAPSHOT_TTL, DEFAULT_SNAPSHOT_TTL),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=60, max=86400, step=30, unit_of_measurement="s",
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
-                ),
-                vol.Required(
                     CONF_DASHBOARD, default=current.get(CONF_DASHBOARD)
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -349,18 +311,6 @@ class PublicAccessOptionsFlow(OptionsFlow):
                 vol.Required(
                     CONF_NOINDEX, default=current.get(CONF_NOINDEX, DEFAULT_NOINDEX)
                 ): bool,
-                vol.Required(
-                    CONF_SHOW_DEVICES, default=current.get(CONF_SHOW_DEVICES, True)
-                ): bool,
-                vol.Required(
-                    CONF_CACHE_SECONDS,
-                    default=current.get(CONF_CACHE_SECONDS, DEFAULT_CACHE_SECONDS),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0, max=3600, step=10, unit_of_measurement="s",
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
-                ),
                 vol.Optional(
                     CONF_FRAME_ANCESTORS,
                     default=current.get(CONF_FRAME_ANCESTORS) or "",

@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant
 _LOGGER = logging.getLogger(__name__)
 
 ASSETS_DIR = Path(__file__).parent / "assets"
-BUNDLED = ("index.html", "snapshot.html", "unavailable.html", "app.js", "app.css")
+BUNDLED = ("unavailable.html",)
 
 _CACHE: dict[str, str] = {}
 # The renderer payload, when a licensed one has been downloaded.
@@ -69,11 +69,6 @@ def installed_version() -> str | None:
 def get(name: str) -> str:
     """A bundled asset, from memory."""
     return _CACHE.get(name, "")
-
-
-def renderer_js() -> str:
-    """The renderer to serve: the licensed payload if present, else the fallback."""
-    return _PAYLOAD_JS or _CACHE.get("app.js", "")
 
 
 def set_payload(js: str | None, version: str | None = None) -> None:

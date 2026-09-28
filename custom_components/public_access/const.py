@@ -15,30 +15,7 @@ CONF_ENABLED: Final = "enabled"
 CONF_NOINDEX: Final = "noindex"
 CONF_CACHE_SECONDS: Final = "cache_seconds"
 CONF_FRAME_ANCESTORS: Final = "frame_ancestors"
-CONF_EARLIEST_DATE: Final = "earliest_date"
-CONF_SHOW_DEVICES: Final = "show_devices"
 
-# How the public page is produced. "live" renders sanitized data with our own
-# renderer; "snapshot" serves a photograph of the real dashboard taken by the
-# companion container. In snapshot mode the sanitizer protects nothing: whatever
-# is on the owner's screen is published as pixels.
-CONF_MODE: Final = "mode"
-MODE_LIVE: Final = "live"
-MODE_SNAPSHOT: Final = "snapshot"
-# "mirror" serves Home Assistant's real frontend through a read-only websocket
-# proxy: exactly what the owner sees, live, with nothing forwarded that could
-# change anything. See mirror.py.
-MODE_MIRROR: Final = "mirror"
-# Mirror is the default: it shows exactly what the owner sees, live, and the
-# read-only guarantee is enforced server-side rather than by re-implementing
-# cards. Live and snapshot remain as alternatives.
-DEFAULT_MODE: Final = MODE_MIRROR
-CONF_SNAPSHOT_TTL: Final = "snapshot_ttl"
-DEFAULT_SNAPSHOT_TTL: Final = 900
-# Where the companion writes, relative to the configuration directory.
-SNAPSHOT_DIR: Final = "public_access_snapshots"
-SNAPSHOT_IMAGE: Final = "dashboard.png"
-SNAPSHOT_REQUEST: Final = "render.request"
 
 DEFAULT_PUBLIC_PATH: Final = "public"
 DEFAULT_LICENSE_SERVER: Final = "https://api.dllfpp.cloud"
@@ -97,18 +74,6 @@ RESERVED_PATHS: Final[frozenset[str]] = frozenset(
         "maintenance",
     }
 )
-
-# Statistics periods the public API accepts. The client may only name one of
-# these; it never supplies statistic ids or raw date ranges. They are calendar
-# periods, as in Home Assistant's own energy dashboard (see data.period_start);
-# the second value is the recorder bucket size.
-PERIODS: Final[dict[str, tuple[str, int]]] = {
-    # name: (recorder period, nominal days — informational only)
-    "day": ("hour", 1),
-    "week": ("day", 7),
-    "month": ("day", 31),
-    "year": ("month", 366),
-}
 
 # Service exposed so support can tell a customer "reload the license now".
 SERVICE_REFRESH_LICENSE: Final = "refresh_license"
