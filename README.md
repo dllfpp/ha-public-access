@@ -101,6 +101,47 @@ never downloads it: HACS installs only `custom_components/public_access`.
 
 ---
 
+## Behind Cloudflare or a reverse proxy
+
+Publishing a page means strangers reach your Home Assistant. If they come through Cloudflare, Nginx
+Proxy Manager or another proxy, **tell Home Assistant to trust it**, or it sees every visitor as the
+proxy's address. Then a few failed logins from anyone (a stale browser tab is enough) make Home
+Assistant ban the proxy itself, and *everybody*, you included, gets `403: Forbidden` at random.
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.30.33.0/24        # Home Assistant OS add-ons (NPM, cloudflared), if you use one
+    # Cloudflare, when the DNS record is proxied (orange cloud): https://www.cloudflare.com/ips/
+    - 173.245.48.0/20
+    - 103.21.244.0/22
+    - 103.22.200.0/22
+    - 103.31.4.0/22
+    - 141.101.64.0/18
+    - 108.162.192.0/18
+    - 190.93.240.0/20
+    - 188.114.96.0/20
+    - 197.234.240.0/22
+    - 198.41.128.0/17
+    - 162.158.0.0/15
+    - 104.16.0.0/13
+    - 104.24.0.0/14
+    - 172.64.0.0/13
+    - 131.0.72.0/22
+    - 2400:cb00::/32
+    - 2606:4700::/32
+    - 2803:f800::/32
+    - 2405:b500::/32
+    - 2405:8100::/32
+    - 2a06:98c0::/29
+    - 2c0f:f248::/32
+```
+
+List only the proxies that really sit in front of Home Assistant, then restart it fully (reloading
+YAML is not enough). Logins and tokens are still required exactly as before; only the address that
+gets logged and banned changes.
+
 ## How the page is made
 
 The visitor gets **Home Assistant's own frontend**, showing your dashboard live — same theme, same
@@ -142,6 +183,11 @@ make any change, save.
 
 **The page loads forever.** Reload with the cache cleared (Ctrl/Cmd + Shift + R). If it persists,
 [open an issue](https://github.com/dllfpp/ha-public-access/issues) with your Home Assistant version.
+
+**Everyone gets `403: Forbidden` now and then.** Home Assistant banned your proxy's address, not a
+visitor's: see [Behind Cloudflare or a reverse proxy](#behind-cloudflare-or-a-reverse-proxy). Add
+`trusted_proxies`, remove the proxy addresses from `ip_bans.yaml`, restart, and reload any tab that
+still shows the public page from an older version.
 
 **After opening the public page, my own Home Assistant answers 403.** Versions before September 2026
 stored the public page's placeholder login in your browser, where your real Home Assistant then found
