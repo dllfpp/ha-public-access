@@ -82,11 +82,13 @@ def test_public_view_requires_no_auth_by_design_and_says_so():
     assert "requires_auth = False" in text
 
 
-def test_the_visitor_supplies_no_parameters():
-    """The public page reads nothing from the query string: no entity, no
-    statistic, no date range can be asked for."""
+def test_the_only_visitor_parameters_are_the_history_ones_and_they_are_filtered():
+    """The page itself reads nothing from the query string. The one endpoint
+    that does (history) cuts the entity list down to the published view."""
     text = (PACKAGE / "view.py").read_text(encoding="utf-8")
-    assert "request.query" not in text
+    assert text.count("request.query") == 1 and "history.parse_query" in text
+    history_module = (PACKAGE / "history.py").read_text(encoding="utf-8")
+    assert "[e for e in wanted if e in allowed]" in history_module
 
 
 def test_the_mirror_filters_what_home_assistant_answers():

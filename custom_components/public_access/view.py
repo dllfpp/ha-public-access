@@ -185,6 +185,18 @@ class PublicDashboardView(HomeAssistantView):
             )
         if route == "healthz":
             return self._json({"status": "ok", "path": self.public_path, "mode": "mirror"})
+        if route == "api/history/period" or route.startswith("api/history/period/"):
+            # Cards that read history over REST instead of the websocket
+            # (ApexCharts) are steered here by the page; same shape, same
+            # answer, but only the published view's entities come back.
+            from . import history
+
+            entity_ids, _ = await self._coordinator.async_mirror_allowlists()
+            start = route.removeprefix("api/history/period").strip("/") or None
+            parsed = history.parse_query(start, dict(request.query), entity_ids or set())
+            if isinstance(parsed, str):
+                return self._json({"message": parsed}, status=400)
+            return self._json(await history.async_fetch(self.hass, parsed))
         html = await mirror.async_render_page(self.hass, self.public_path)
         if html is None:
             # The mirror's frontend glue arrives with the licensed renderer
