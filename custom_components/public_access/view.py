@@ -16,7 +16,7 @@ Design rules enforced here:
 from __future__ import annotations
 
 import hashlib
-import json
+from homeassistant.helpers.json import json_dumps
 import logging
 import time
 from typing import Any
@@ -121,7 +121,9 @@ class PublicDashboardView(HomeAssistantView):
         return response
 
     def _json(self, payload: Any, status: int = 200) -> web.Response:
-        body = json.dumps(payload, default=str)
+        # Home Assistant's own encoder: State objects become their dict form, as
+        # the frontend and cards expect from the real history endpoint.
+        body = json_dumps(payload)
         response = web.Response(
             body=body.encode(), content_type="application/json", status=status
         )

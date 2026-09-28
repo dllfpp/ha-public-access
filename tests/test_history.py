@@ -43,3 +43,15 @@ def test_bad_input_is_an_error_message():
 def test_a_huge_range_is_capped():
     q = parse_query("2020-01-01T00:00:00+00:00", {"filter_entity_id": "weather.home", "end_time": "2026-09-28T00:00:00+00:00"}, ALLOWED, now=NOW)
     assert q.end - q.start == MAX_SPAN
+
+
+def test_states_are_serialized_as_dicts_not_text():
+    """Rendering a State with str() gave '<state sensor.x=1; ...>'; cards need the dict."""
+    import json
+
+    from homeassistant.core import State
+    from homeassistant.helpers.json import json_dumps
+
+    out = json.loads(json_dumps([[State("sensor.solar_power", "412", {"unit_of_measurement": "W"})]]))
+    assert out[0][0]["entity_id"] == "sensor.solar_power"
+    assert out[0][0]["state"] == "412" and out[0][0]["attributes"]["unit_of_measurement"] == "W"
