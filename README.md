@@ -111,6 +111,11 @@ Proxy Manager or another proxy, **tell Home Assistant to trust it**, or it sees 
 proxy's address. Then a few failed logins from anyone (a stale browser tab is enough) make Home
 Assistant ban the proxy itself, and *everybody*, you included, gets `403: Forbidden` at random.
 
+**Where to set it.** On recent Home Assistant versions the HTTP settings live in **Settings → System
+→ Network**: turn on *Use X-Forwarded-For* and add the trusted proxies there. Home Assistant imported
+your old `http:` YAML once and **ignores it from then on** (it says so under *Repairs*), so editing
+`configuration.yaml` has no effect; remove the block. On older versions, use YAML:
+
 ```yaml
 http:
   use_x_forwarded_for: true
@@ -141,8 +146,8 @@ http:
     - 2c0f:f248::/32
 ```
 
-List only the proxies that really sit in front of Home Assistant, then restart it fully (reloading
-YAML is not enough). Logins and tokens are still required exactly as before; only the address that
+List every proxy that sits in front of Home Assistant: with Cloudflare **and** Nginx Proxy Manager you
+need both. Then restart fully (reloading YAML is not enough). Logins and tokens are still required exactly as before; only the address that
 gets logged and banned changes.
 
 If visitors arrive through a proxy Home Assistant does not trust, Public Access says so under
