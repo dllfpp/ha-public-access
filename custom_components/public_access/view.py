@@ -25,8 +25,9 @@ from aiohttp import web
 
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
-from . import assets
+from . import assets, guard
 from .const import (
     CONF_CACHE_SECONDS,
     CONF_DASHBOARD,
@@ -35,6 +36,9 @@ from .const import (
     CONF_NOINDEX,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
+    DOMAIN,
+    MAX_PUBLIC_SESSIONS,
+    MAX_SESSIONS_PER_CLIENT,
     RATE_LIMIT_PER_MINUTE,
 )
 from .coordinator import PublicDashboardCoordinator
@@ -82,6 +86,8 @@ class PublicDashboardView(HomeAssistantView):
         self.extra_urls = [f"/{public_path}/{{extra:.+}}"]
         self._coordinator = coordinator
         self._limiter = RateLimiter()
+        self._sessions = guard.SessionLimiter(MAX_PUBLIC_SESSIONS, MAX_SESSIONS_PER_CLIENT)
+        self._proxy_issue: bool | None = None
 
     def rebind(self, coordinator: PublicDashboardCoordinator) -> None:
         """Point this route at a new config entry's coordinator.
@@ -136,6 +142,35 @@ class PublicDashboardView(HomeAssistantView):
         response.headers["Cache-Control"] = "no-store"
         return response
 
+    def _check_proxy(self, request: web.Request) -> None:
+        """Raise a repair when visitors arrive through an untrusted proxy."""
+        proxy = guard.proxy_not_trusted(request)
+        if proxy is None and request.headers.get("X-Forwarded-For") is None:
+            return  # a direct visit says nothing either way
+        if (proxy is not None) == self._proxy_issue:
+            return
+        self._proxy_issue = proxy is not None
+        if proxy is None:
+            ir.async_delete_issue(self.hass, DOMAIN, "proxy_not_trusted")
+            return
+        _LOGGER.warning(
+            "Public page visited through proxy %s, which Home Assistant does not "
+            "trust: add it to http: trusted_proxies", proxy
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "proxy_not_trusted",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="proxy_not_trusted",
+            translation_placeholders={
+                "proxy": proxy,
+                "cf_ips": "https://www.cloudflare.com/ips/",
+            },
+            learn_more_url="https://github.com/dllfpp/ha-public-access#behind-cloudflare-or-a-reverse-proxy",
+        )
+
     # -- routing ---------------------------------------------------------------
 
     async def get(self, request: web.Request, extra: str = "") -> web.Response:
@@ -143,6 +178,8 @@ class PublicDashboardView(HomeAssistantView):
         if not self._coordinator.active or not self._options.get(CONF_ENABLED, True):
             # Deliberately indistinguishable from a path that was never configured.
             return web.Response(text="404: Not Found", status=404)
+
+        self._check_proxy(request)
 
         if not self._limiter.allow(request.remote):
             response = web.Response(text="429: Too Many Requests", status=429)
@@ -166,25 +203,43 @@ class PublicDashboardView(HomeAssistantView):
         Routes: the page itself (any sub-path, since the frontend routes views
         client-side) and `ws`, the websocket the page is steered to.
         """
-        from . import mirror
-
         options = self._options
         dashboard = options.get(CONF_DASHBOARD) or ""
         view_path = options.get(CONF_VIEW_PATH) or None
 
         if route == "ws":
-            entity_ids, statistic_ids = await self._coordinator.async_mirror_allowlists()
-            templates = await self._coordinator.async_mirror_templates()
-            return await mirror.async_serve_websocket(
-                self.hass,
-                request,
-                public_path=self.public_path,
-                dashboard=dashboard,
-                view_path=view_path,
-                entity_ids=entity_ids,
-                statistic_ids=statistic_ids,
-                templates=templates,
-            )
+            if not self._sessions.acquire(request.remote):
+                response = web.Response(text="503: Too many visitors", status=503)
+                response.headers["Retry-After"] = "30"
+                return response
+            try:
+                return await self._serve_ws(request, dashboard, view_path)
+            finally:
+                self._sessions.release(request.remote)
+        return await self._serve_page(request, route)
+
+    async def _serve_ws(
+        self, request: web.Request, dashboard: str, view_path: str | None
+    ) -> web.StreamResponse:
+        from . import mirror
+
+        entity_ids, statistic_ids = await self._coordinator.async_mirror_allowlists()
+        templates = await self._coordinator.async_mirror_templates()
+        return await mirror.async_serve_websocket(
+            self.hass,
+            request,
+            public_path=self.public_path,
+            dashboard=dashboard,
+            view_path=view_path,
+            entity_ids=entity_ids,
+            statistic_ids=statistic_ids,
+            templates=templates,
+        )
+
+    async def _serve_page(self, request: web.Request, route: str) -> web.StreamResponse:
+        from . import mirror
+
+        options = self._options
         if route == "healthz":
             return self._json({"status": "ok", "path": self.public_path, "mode": "mirror"})
         if route == "api/history/period" or route.startswith("api/history/period/"):

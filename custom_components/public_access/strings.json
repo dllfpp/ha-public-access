@@ -73,6 +73,10 @@
     "restart_required": {
       "title": "Restart to finish moving the public dashboard",
       "description": "The public path changed to {new}, but {old} stays active until Home Assistant restarts, because a route cannot be removed at runtime."
+    },
+    "proxy_not_trusted": {
+      "title": "Public Access: Home Assistant does not trust your proxy",
+      "description": "Visitors reach the public page through {proxy}, which is not in `http: trusted_proxies`. Home Assistant sees every visitor as that address, so a few failed logins from anyone ban the proxy and everybody gets 403 Forbidden. Add `use_x_forwarded_for: true` and your proxy's address ranges (for Cloudflare, {cf_ips}) under `http:` in configuration.yaml, remove the proxy's addresses from ip_bans.yaml, and restart Home Assistant."
     }
   }
 }

@@ -73,6 +73,10 @@
     "restart_required": {
       "title": "Riavvia per completare lo spostamento della dashboard pubblica",
       "description": "Il percorso pubblico è cambiato in {new}, ma {old} resta attivo fino al riavvio di Home Assistant, perché una rotta non può essere rimossa a runtime."
+    },
+    "proxy_not_trusted": {
+      "title": "Public Access: Home Assistant non si fida del tuo proxy",
+      "description": "I visitatori raggiungono la pagina pubblica attraverso {proxy}, che non è in `http: trusted_proxies`. Home Assistant vede ogni visitatore con quell'indirizzo, quindi pochi login sbagliati di chiunque bannano il proxy e tutti ricevono 403 Forbidden. Aggiungi `use_x_forwarded_for: true` e le reti del proxy (per Cloudflare, {cf_ips}) sotto `http:` in configuration.yaml, togli gli indirizzi del proxy da ip_bans.yaml e riavvia Home Assistant."
     }
   }
 }

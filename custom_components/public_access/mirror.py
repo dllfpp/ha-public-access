@@ -22,7 +22,6 @@ design.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from typing import Any
@@ -38,13 +37,15 @@ from .sanitize import pin_default_panel, view_matches
 
 _LOGGER = logging.getLogger(__name__)
 
+from .const import MAX_PUBLIC_SESSIONS
+
 STORAGE_VERSION = 1
 STORAGE_KEY = "public_access.viewer"
 VIEWER_NAME = "Public Access viewer"
 
-# Concurrent public websocket connections, in total. Each one is a live
-# connection on the owner's instance, so this is a safety valve, not a target.
-MAX_CONNECTIONS = 25
+# Concurrent public websocket connections, in total. The view refuses extra
+# visitors before the upgrade; this is the backstop behind it.
+MAX_CONNECTIONS = MAX_PUBLIC_SESSIONS
 
 # What the frontend needs to draw a dashboard and nothing more. Every type not
 # listed is refused. Types marked "filtered" are rewritten so the visitor only

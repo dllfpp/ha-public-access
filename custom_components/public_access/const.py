@@ -77,3 +77,9 @@ RESERVED_PATHS: Final[frozenset[str]] = frozenset(
 
 # Service exposed so support can tell a customer "reload the license now".
 SERVICE_REFRESH_LICENSE: Final = "refresh_license"
+
+# Concurrent public websocket sessions, in total and per visitor address. Each
+# one is a live connection on the owner's instance; past the cap new visitors
+# get 503 + Retry-After instead of adding load.
+MAX_PUBLIC_SESSIONS = 25
+MAX_SESSIONS_PER_CLIENT = 4

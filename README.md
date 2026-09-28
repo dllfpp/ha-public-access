@@ -90,6 +90,9 @@ Only the entities the published view actually shows are visible, and no password
 reaches the visitor's browser. **What is on the view is visible, though:** if the view shows a camera
 or a map, visitors see it — so build the public view on purpose.
 
+A crowd cannot overload your instance either: at most 25 visitors are connected at once, and 4 per
+address; past that, new visitors are asked to retry in a few seconds.
+
 The code that enforces this is in this repository, so you can read it before trusting it. What
 makes Home Assistant's frontend work behind the glass, and has to follow each frontend release,
 arrives with your subscription in a package signed by us; the plugin checks the signature before
@@ -141,6 +144,9 @@ http:
 List only the proxies that really sit in front of Home Assistant, then restart it fully (reloading
 YAML is not enough). Logins and tokens are still required exactly as before; only the address that
 gets logged and banned changes.
+
+If visitors arrive through a proxy Home Assistant does not trust, Public Access says so under
+*Settings → Repairs*, with the address it saw.
 
 ## How the page is made
 
