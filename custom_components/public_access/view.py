@@ -145,6 +145,11 @@ class PublicDashboardView(HomeAssistantView):
     def _check_proxy(self, request: web.Request) -> None:
         """Raise a repair when visitors arrive through an untrusted proxy."""
         proxy = guard.proxy_not_trusted(request)
+        _LOGGER.debug(
+            "Public visit from %s, X-Forwarded-For %s",
+            request.remote,
+            request.headers.get("X-Forwarded-For"),
+        )
         if proxy is None and request.headers.get("X-Forwarded-For") is None:
             return  # a direct visit says nothing either way
         if (proxy is not None) == self._proxy_issue:

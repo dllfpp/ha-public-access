@@ -50,3 +50,12 @@ def test_total_cap_and_release():
     for client in ("a", "c"):
         limiter.release(client)
     assert limiter.active == 0
+
+
+def test_cloudflare_address_as_visitor_is_reported():
+    """Cloudflare, then NPM, with only NPM trusted: HA settles on Cloudflare."""
+    assert proxy_not_trusted(_request("172.69.9.16", "203.0.113.7, 172.69.9.16")) == "172.69.9.16"
+
+
+def test_the_visitor_address_first_in_the_chain_is_fine():
+    assert proxy_not_trusted(_request("203.0.113.7", "203.0.113.7, 172.69.9.16")) is None
