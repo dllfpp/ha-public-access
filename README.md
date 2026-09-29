@@ -21,6 +21,8 @@ Free 5-day trial, then €2.99/month or €30/year → **[publicaccess.dllfpp.cl
 
 ## Get started
 
+Requires **Home Assistant 2026.1 or later**.
+
 **1. Install.** Click the button above, or in HACS open *⋮ → Custom repositories*, add
 `https://github.com/dllfpp/ha-public-access` with type **Integration**, then install **Public Access**
 and restart Home Assistant.
