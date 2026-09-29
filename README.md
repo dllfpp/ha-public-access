@@ -106,18 +106,18 @@ never downloads it: HACS installs only `custom_components/public_access`.
 
 ---
 
-## Behind Cloudflare or a reverse proxy
+## Behind Cloudflare or Nginx Proxy Manager
 
 **Nothing to configure.** Public Access tells visitors apart by itself: behind Cloudflare it reads
 the visitor's address from the `CF-Connecting-IP` header that Cloudflare sets (and only when the
-connection really comes from Cloudflare), behind your own reverse proxy from the address that proxy
-recorded. Visitor caps and rate limits work out of the box, and the public page never sends a login
+connection really comes from Cloudflare), behind your own front server, such as Nginx Proxy Manager,
+from the address that server recorded. Visitor caps and rate limits work out of the box, and the public page never sends a login
 that could fail, so it cannot get anyone banned.
 
 **Optional, for your Home Assistant in general.** Unrelated to Public Access: if Home Assistant is
-reachable through a proxy it does not trust, it sees every visitor as the proxy, and a few failed
-logins from anyone (a stale tab of your own dashboard is enough) ban the proxy for everybody. If you
-ever meet random `403: Forbidden`, list your proxies as trusted: on recent versions in **Settings →
+reachable through a front server it does not trust (Cloudflare, Nginx Proxy Manager), it sees every
+visitor as that server, and a few failed logins from anyone (a stale tab of your own dashboard is
+enough) ban it for everybody. If you ever meet random `403: Forbidden`, mark those servers as trusted: on recent versions in **Settings →
 System → Network**, on older ones in YAML. With Cloudflare in front, list its ranges too
 (<https://www.cloudflare.com/ips/>):
 
@@ -197,9 +197,9 @@ make any change, save.
 **The page loads forever.** Reload with the cache cleared (Ctrl/Cmd + Shift + R). If it persists,
 [open an issue](https://github.com/dllfpp/ha-public-access/issues) with your Home Assistant version.
 
-**Everyone gets `403: Forbidden` now and then.** Home Assistant banned your proxy's address after
-failed logins: see the optional note in [Behind Cloudflare or a reverse
-proxy](#behind-cloudflare-or-a-reverse-proxy). Remove the proxy's addresses from `ip_bans.yaml`,
+**Everyone gets `403: Forbidden` now and then.** Home Assistant banned your front server's address after
+failed logins: see the optional note in [Behind Cloudflare or Nginx
+Proxy Manager](#behind-cloudflare-or-nginx-proxy-manager). Remove that server's addresses from `ip_bans.yaml`,
 restart, and reload any tab still showing the public page from a version before 0.4.2.
 
 **After opening the public page, my own Home Assistant answers 403.** Versions before September 2026
@@ -243,7 +243,7 @@ reinstall.
 <summary><b>Embedding the page in your own website</b></summary>
 
 Home Assistant forbids framing its pages (`X-Frame-Options: SAMEORIGIN`), and an integration cannot
-change that. Drop the header at your reverse proxy, on the public path only — for Nginx or Nginx Proxy
+change that. Drop the header at the server in front of Home Assistant, on the public path only — for Nginx or Nginx Proxy
 Manager:
 
 ```nginx
