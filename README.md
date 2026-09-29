@@ -17,6 +17,8 @@ as you designed it, and **cannot change anything** in your home. No account, no 
 
 Free 5-day trial, then €2.99/month or €30/year → **[publicaccess.dllfpp.cloud](https://publicaccess.dllfpp.cloud)**
 
+Questions, ideas, show-and-tell → **[discussion on the Home Assistant forum](https://community.home-assistant.io/t/public-access-publish-one-dashboard-publicly-read-only-on-your-own-domain/1026819)**
+
 ---
 
 ## Get started
@@ -222,8 +224,8 @@ The integration's code is **source-available** under [PolyForm Shield 1.0.0](LIC
 it, run it, modify it for your own use — just don't use it to build a competing product. That is why
 it is installed as a HACS *custom repository* rather than from the default store.
 
-Support: [GitHub issues](https://github.com/dllfpp/ha-public-access/issues). Payments, refunds and
-personal data: awiteva28@gmail.com.
+Support: [GitHub issues](https://github.com/dllfpp/ha-public-access/issues). Discussion: [Home Assistant
+forum](https://community.home-assistant.io/t/public-access-publish-one-dashboard-publicly-read-only-on-your-own-domain/1026819). Payments, refunds and personal data: awiteva28@gmail.com.
 
 ---
 
