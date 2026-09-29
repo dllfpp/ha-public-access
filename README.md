@@ -214,8 +214,9 @@ Assistant address in any browser that opened the public page.
 ## Price and license
 
 A free **5-day trial** — no card — then **€2.99/month or €30/year** per Home Assistant instance.
-Payments, VAT and invoices are handled by Lemon Squeezy. When a trial or subscription ends the public
-page stops; nothing is deleted.
+Payments, VAT and invoices are handled by Paddle, our merchant of record; you manage or cancel the
+subscription from Paddle's [customer portal](https://customer-portal.paddle.com/cpl_01m3p9xew3xam29hnd85d6wdn4).
+When a trial or subscription ends the public page stops; nothing is deleted.
 
 The integration's code is **source-available** under [PolyForm Shield 1.0.0](LICENSE): read it, audit
 it, run it, modify it for your own use — just don't use it to build a competing product. That is why
