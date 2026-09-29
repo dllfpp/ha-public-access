@@ -152,6 +152,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, "restart_required")
+    # 0.4.3-0.4.5 raised this when visitors came through an untrusted proxy;
+    # visitors are now told apart without any proxy settings, so it is gone.
+    ir.async_delete_issue(hass, DOMAIN, "proxy_not_trusted")
 
     @callback
     def _dashboard_changed(_event: Event) -> None:

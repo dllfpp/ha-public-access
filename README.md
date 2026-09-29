@@ -106,15 +106,20 @@ never downloads it: HACS installs only `custom_components/public_access`.
 
 ## Behind Cloudflare or a reverse proxy
 
-Publishing a page means strangers reach your Home Assistant. If they come through Cloudflare, Nginx
-Proxy Manager or another proxy, **tell Home Assistant to trust it**, or it sees every visitor as the
-proxy's address. Then a few failed logins from anyone (a stale browser tab is enough) make Home
-Assistant ban the proxy itself, and *everybody*, you included, gets `403: Forbidden` at random.
+**Nothing to configure.** Public Access tells visitors apart by itself: behind Cloudflare it reads
+the visitor's address from the `CF-Connecting-IP` header that Cloudflare sets (and only when the
+connection really comes from Cloudflare), behind your own reverse proxy from the address that proxy
+recorded. Visitor caps and rate limits work out of the box, and the public page never sends a login
+that could fail, so it cannot get anyone banned.
 
-**Where to set it.** On recent Home Assistant versions the HTTP settings live in **Settings → System
-→ Network**: turn on *Use X-Forwarded-For* and add the trusted proxies there. Home Assistant imported
-your old `http:` YAML once and **ignores it from then on** (it says so under *Repairs*), so editing
-`configuration.yaml` has no effect; remove the block. On older versions, use YAML:
+**Optional, for your Home Assistant in general.** Unrelated to Public Access: if Home Assistant is
+reachable through a proxy it does not trust, it sees every visitor as the proxy, and a few failed
+logins from anyone (a stale tab of your own dashboard is enough) ban the proxy for everybody. If you
+ever meet random `403: Forbidden`, list your proxies as trusted: on recent versions in **Settings →
+System → Network**, on older ones in YAML. With Cloudflare in front, list its ranges too
+(<https://www.cloudflare.com/ips/>):
+
+<details><summary>YAML for older Home Assistant versions</summary>
 
 ```yaml
 http:
@@ -146,12 +151,7 @@ http:
     - 2c0f:f248::/32
 ```
 
-List every proxy that sits in front of Home Assistant: with Cloudflare **and** Nginx Proxy Manager you
-need both. Then restart fully (reloading YAML is not enough). Logins and tokens are still required exactly as before; only the address that
-gets logged and banned changes.
-
-If visitors arrive through a proxy Home Assistant does not trust, Public Access says so under
-*Settings → Repairs*, with the address it saw.
+</details>
 
 ## How the page is made
 
@@ -195,10 +195,10 @@ make any change, save.
 **The page loads forever.** Reload with the cache cleared (Ctrl/Cmd + Shift + R). If it persists,
 [open an issue](https://github.com/dllfpp/ha-public-access/issues) with your Home Assistant version.
 
-**Everyone gets `403: Forbidden` now and then.** Home Assistant banned your proxy's address, not a
-visitor's: see [Behind Cloudflare or a reverse proxy](#behind-cloudflare-or-a-reverse-proxy). Add
-`trusted_proxies`, remove the proxy addresses from `ip_bans.yaml`, restart, and reload any tab that
-still shows the public page from an older version.
+**Everyone gets `403: Forbidden` now and then.** Home Assistant banned your proxy's address after
+failed logins: see the optional note in [Behind Cloudflare or a reverse
+proxy](#behind-cloudflare-or-a-reverse-proxy). Remove the proxy's addresses from `ip_bans.yaml`,
+restart, and reload any tab still showing the public page from a version before 0.4.2.
 
 **After opening the public page, my own Home Assistant answers 403.** Versions before September 2026
 stored the public page's placeholder login in your browser, where your real Home Assistant then found

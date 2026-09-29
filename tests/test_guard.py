@@ -59,3 +59,44 @@ def test_cloudflare_address_as_visitor_is_reported():
 
 def test_the_visitor_address_first_in_the_chain_is_fine():
     assert proxy_not_trusted(_request("203.0.113.7", "203.0.113.7, 172.69.9.16")) is None
+
+
+def _cf_request(remote, xff=None, cf_ip=None):
+    headers = {}
+    if xff:
+        headers["X-Forwarded-For"] = xff
+    if cf_ip:
+        headers["CF-Connecting-IP"] = cf_ip
+    return make_mocked_request("GET", "/public_solar", headers=headers).clone(remote=remote)
+
+
+def test_visitor_behind_cloudflare_with_no_proxy_settings():
+    from custom_components.public_access.guard import visitor_address
+
+    request = _cf_request("172.69.9.16", "203.0.113.7, 172.69.9.16", "203.0.113.7")
+    assert visitor_address(request) == "203.0.113.7"
+
+
+def test_visitor_behind_cloudflare_then_untrusted_npm():
+    from custom_components.public_access.guard import visitor_address
+
+    request = _cf_request("172.30.33.2", "203.0.113.7, 172.69.9.16", "203.0.113.7")
+    assert visitor_address(request) == "203.0.113.7"
+
+
+def test_forged_cf_header_is_ignored_from_a_non_cloudflare_address():
+    from custom_components.public_access.guard import visitor_address
+
+    assert visitor_address(_cf_request("198.51.100.9", cf_ip="1.2.3.4")) == "198.51.100.9"
+
+
+def test_local_proxy_without_cloudflare_uses_its_last_hop():
+    from custom_components.public_access.guard import visitor_address
+
+    assert visitor_address(_cf_request("192.168.1.5", "203.0.113.7")) == "203.0.113.7"
+
+
+def test_trusted_setup_keeps_home_assistants_answer():
+    from custom_components.public_access.guard import visitor_address
+
+    assert visitor_address(_cf_request("203.0.113.7", "203.0.113.7, 172.69.9.16", "203.0.113.7")) == "203.0.113.7"

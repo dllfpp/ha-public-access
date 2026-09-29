@@ -25,7 +25,6 @@ from aiohttp import web
 
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import issue_registry as ir
 
 from . import assets, guard
 from .const import (
@@ -36,7 +35,6 @@ from .const import (
     CONF_NOINDEX,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
-    DOMAIN,
     MAX_PUBLIC_SESSIONS,
     MAX_SESSIONS_PER_CLIENT,
     RATE_LIMIT_PER_MINUTE,
@@ -87,7 +85,7 @@ class PublicDashboardView(HomeAssistantView):
         self._coordinator = coordinator
         self._limiter = RateLimiter()
         self._sessions = guard.SessionLimiter(MAX_PUBLIC_SESSIONS, MAX_SESSIONS_PER_CLIENT)
-        self._proxy_issue: bool | None = None
+        self.last_visit: dict[str, Any] | None = None
 
     def rebind(self, coordinator: PublicDashboardCoordinator) -> None:
         """Point this route at a new config entry's coordinator.
@@ -142,38 +140,17 @@ class PublicDashboardView(HomeAssistantView):
         response.headers["Cache-Control"] = "no-store"
         return response
 
-    def _check_proxy(self, request: web.Request) -> None:
-        """Raise a repair when visitors arrive through an untrusted proxy."""
-        proxy = guard.proxy_not_trusted(request)
+    def _note_visit(self, request: web.Request, visitor: str | None) -> None:
+        """Note how the visitor was told apart, for diagnostics; no action needed."""
+        self.last_visit = {
+            "source": guard.visitor_source(request),
+            "home_assistant_resolved_proxy": guard.proxy_not_trusted(request) is None,
+        }
         _LOGGER.debug(
-            "Public visit from %s, X-Forwarded-For %s",
+            "Public visit from %s (remote %s, X-Forwarded-For %s)",
+            visitor,
             request.remote,
             request.headers.get("X-Forwarded-For"),
-        )
-        if proxy is None and request.headers.get("X-Forwarded-For") is None:
-            return  # a direct visit says nothing either way
-        if (proxy is not None) == self._proxy_issue:
-            return
-        self._proxy_issue = proxy is not None
-        if proxy is None:
-            ir.async_delete_issue(self.hass, DOMAIN, "proxy_not_trusted")
-            return
-        _LOGGER.warning(
-            "Public page visited through proxy %s, which Home Assistant does not "
-            "trust: add it to http: trusted_proxies", proxy
-        )
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            "proxy_not_trusted",
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="proxy_not_trusted",
-            translation_placeholders={
-                "proxy": proxy,
-                "cf_ips": "https://www.cloudflare.com/ips/",
-            },
-            learn_more_url="https://github.com/dllfpp/ha-public-access#behind-cloudflare-or-a-reverse-proxy",
         )
 
     # -- routing ---------------------------------------------------------------
@@ -184,9 +161,10 @@ class PublicDashboardView(HomeAssistantView):
             # Deliberately indistinguishable from a path that was never configured.
             return web.Response(text="404: Not Found", status=404)
 
-        self._check_proxy(request)
+        visitor = guard.visitor_address(request)
+        self._note_visit(request, visitor)
 
-        if not self._limiter.allow(request.remote):
+        if not self._limiter.allow(visitor):
             response = web.Response(text="429: Too Many Requests", status=429)
             response.headers["Retry-After"] = "60"
             return response
@@ -200,9 +178,11 @@ class PublicDashboardView(HomeAssistantView):
         # Mirror is the only way a dashboard is published. The live renderer and
         # the snapshot companion were removed in 0.4: entries still set to them
         # are served as mirror.
-        return await self._mirror(request, extra.strip("/"))
+        return await self._mirror(request, extra.strip("/"), visitor)
 
-    async def _mirror(self, request: web.Request, route: str) -> web.StreamResponse:
+    async def _mirror(
+        self, request: web.Request, route: str, visitor: str | None
+    ) -> web.StreamResponse:
         """Home Assistant's real frontend over a read-only websocket proxy.
 
         Routes: the page itself (any sub-path, since the frontend routes views
@@ -213,14 +193,14 @@ class PublicDashboardView(HomeAssistantView):
         view_path = options.get(CONF_VIEW_PATH) or None
 
         if route == "ws":
-            if not self._sessions.acquire(request.remote):
+            if not self._sessions.acquire(visitor):
                 response = web.Response(text="503: Too many visitors", status=503)
                 response.headers["Retry-After"] = "30"
                 return response
             try:
                 return await self._serve_ws(request, dashboard, view_path)
             finally:
-                self._sessions.release(request.remote)
+                self._sessions.release(visitor)
         return await self._serve_page(request, route)
 
     async def _serve_ws(

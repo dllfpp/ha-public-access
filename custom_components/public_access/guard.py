@@ -1,4 +1,4 @@
-"""Protections in front of the public page: proxy sanity and session caps."""
+"""Protections in front of the public page: who the visitor is, and session caps."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from ipaddress import ip_address, ip_network
 
 from aiohttp import web
 from aiohttp.hdrs import X_FORWARDED_FOR
+
+CF_CONNECTING_IP = "CF-Connecting-IP"
 
 
 def proxy_not_trusted(request: web.Request) -> str | None:
@@ -83,3 +85,50 @@ class SessionLimiter:
         self._clients[key] -= 1
         if self._clients[key] <= 0:
             del self._clients[key]
+
+
+def visitor_address(request: web.Request) -> str | None:
+    """The visitor's own address, with no proxy settings needed in Home Assistant.
+
+    Caps and rate limits must count visitors, not the proxy they share. Home
+    Assistant only resolves the real address when every proxy in front of it is
+    listed in its trusted proxies, which few owners set up. So:
+
+    * a connection from Cloudflare carries the visitor in CF-Connecting-IP,
+      which Cloudflare sets itself and a visitor cannot forge through it;
+    * a connection from the owner's own network is their reverse proxy (NPM):
+      the last X-Forwarded-For entry is the address it saw, and when that is
+      Cloudflare, CF-Connecting-IP again names the visitor.
+    """
+    remote = request.remote
+    if remote is None:
+        return None
+    if _is_cloudflare(remote):
+        return request.headers.get(CF_CONNECTING_IP, remote).strip()
+    if _is_private(remote):
+        header = request.headers.get(X_FORWARDED_FOR, "")
+        hops = [part.strip() for part in header.split(",") if part.strip()]
+        if hops:
+            last = hops[-1]
+            if _is_cloudflare(last):
+                return request.headers.get(CF_CONNECTING_IP, last).strip()
+            return last
+    return remote
+
+
+def _is_private(address: str) -> bool:
+    try:
+        ip = ip_address(address)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback
+
+
+def visitor_source(request: web.Request) -> str:
+    """Which rule of visitor_address applied, for diagnostics."""
+    remote = request.remote or ""
+    if _is_cloudflare(remote):
+        return "cloudflare"
+    if _is_private(remote) and request.headers.get(X_FORWARDED_FOR):
+        return "local_proxy"
+    return "direct"
