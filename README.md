@@ -5,7 +5,7 @@
 [![Open your Home Assistant instance and add this repository in HACS][my-badge]][my-url]
 [![validate][validate-badge]][validate-url]
 
-![A Home Assistant dashboard as a visitor sees it: no header, no sidebar, nothing to press](https://publicaccess.dllfpp.cloud/assets/ha-overview.png)
+<img width="1920" height="1200" alt="Contesto reception aziendale@1x" src="https://github.com/user-attachments/assets/c942ee39-31ac-41fa-a4ca-4bef4612ecce" />
 
 Your solar production for the neighbours, a weather station for the village, a guest screen for a
 holiday rental: pick a dashboard, give it an address, share the link. Visitors see it live, exactly
