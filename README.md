@@ -10,7 +10,7 @@
 ![Home Assistant 2026.1+](https://img.shields.io/badge/Home%20Assistant-2026.1%2B-18bcf2?style=flat-square)
 [![License MIT](https://img.shields.io/badge/license-MIT-2f855a?style=flat-square)](LICENSE)
 ![Free](https://img.shields.io/badge/price-free-2f855a?style=flat-square)
-[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=flat-square&logo=paypal&logoColor=white)](https://paypal.me/dllfpp)
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=flat-square&logo=paypal&logoColor=white)](https://www.paypal.me/filippodaelli)
 </div>
 
 <img width="1920" height="1200" alt="A credential-free wall screen showing a Home Assistant dashboard, read-only, published with Public Access" src="https://github.com/user-attachments/assets/c942ee39-31ac-41fa-a4ca-4bef4612ecce" />
@@ -57,7 +57,7 @@ Requires **Home Assistant 2026.1 or later**.
 | **Requests** | 60 a minute per visitor address |
 | **Search engines** | Asked not to index the page (can be turned off) |
 | **What leaves your home** | Nothing: no account, no license server, no telemetry |
-| **Price** | Free, open source (MIT). [Donations welcome](https://paypal.me/dllfpp) |
+| **Price** | Free, open source (MIT). [Donations welcome](https://www.paypal.me/filippodaelli) |
 
 ## The two things you choose
 
@@ -156,7 +156,7 @@ Public Access is **free for everyone**, with no trial, no account and no limits 
 
 If Public Access is useful to you, a donation helps me keep it working with every new Home Assistant release.
 
-[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/dllfpp)
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/filippodaelli)
 
 ## Support and feedback
 
