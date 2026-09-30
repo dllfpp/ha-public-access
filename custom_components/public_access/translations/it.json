@@ -1,13 +1,6 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Public Access",
-        "description": "Incolla la chiave che hai ricevuto via email.\n\nNon hai una chiave? Inizia la prova gratuita su {trial_url}, senza carta.",
-        "data": {
-          "license_key": "Chiave di abbonamento"
-        }
-      },
       "dashboard": {
         "title": "Quale dashboard?",
         "description": "Scegli la dashboard da pubblicare.\n\nConsiglio: creane una apposta per il pubblico, con solo ciò che gli estranei possono vedere. Qui compaiono solo le dashboard salvate almeno una volta.",
@@ -31,8 +24,6 @@
       }
     },
     "error": {
-      "license_refused": "Il server delle licenze ha rifiutato questa chiave: {reason}",
-      "cannot_connect": "Impossibile raggiungere il server delle licenze. Verifica che Home Assistant abbia accesso a internet e riprova.",
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
       "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard. Usarlo nasconderebbe una parte del tuo Home Assistant."
@@ -66,10 +57,6 @@
     }
   },
   "issues": {
-    "subscription_ending": {
-      "title": "Public Access: l'abbonamento richiede attenzione",
-      "description": "Stato: {status}. La prova o il periodo pagato termina tra {days} giorno/i; poi la pagina pubblica mostra un avviso di non disponibilità. (La tolleranza vale solo se il server licenze è irraggiungibile.) Abbonati o rinnova su {url}"
-    },
     "restart_required": {
       "title": "Riavvia per completare lo spostamento della dashboard pubblica",
       "description": "Il percorso pubblico è cambiato in {new}, ma {old} resta attivo fino al riavvio di Home Assistant, perché una rotta non può essere rimossa a runtime."

@@ -33,24 +33,18 @@ FORBIDDEN = (
     "os.system",
     "eval(",
     "exec(",
-    "exec_module(",       # running code: only the signed payload, see ALLOWED
+    "exec_module(",       # running code loaded at runtime: never
 )
 
 # The writes this integration does perform, each to its own state and each
 # named here so a new one cannot appear unnoticed:
-# - license.py caches the signed entitlement;
 # - mirror.py remembers the id of the read-only viewer user it created, and
 #   creating that user (and its refresh token) is itself a write to the auth
-#   store — once, and never anything that touches the owner's own users;
-# - assets.py imports mirror_core.py, the one piece of code that arrives in the
-#   renderer payload, and only after payload.py has verified the payload's
-#   Ed25519 signature against the pinned key.
+#   store — once, and never anything that touches the owner's own users.
 ALLOWED = {
-    ("license.py", "async_save("),
     ("mirror.py", "async_save("),
     ("mirror.py", "async_create_system_user("),
     ("mirror.py", "async_create_refresh_token("),
-    ("assets.py", "exec_module("),
 }
 
 

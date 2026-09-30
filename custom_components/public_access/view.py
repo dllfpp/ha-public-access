@@ -6,7 +6,7 @@ Design rules enforced here:
 * The client never names an entity, a statistic or a date range. It may only pick a
   period from a closed enum; ids come from the sanitized dashboard and the energy
   preferences, resolved server-side.
-* Nothing is served unless the integration is enabled and the license may serve.
+* Nothing is served unless the integration is enabled.
 * `X-Frame-Options: SAMEORIGIN` is applied by Home Assistant's own middleware after
   this handler returns and cannot be overridden from here, so embedding the page in
   another site requires a header rewrite at the reverse proxy. CSP, X-Robots-Tag and
@@ -169,12 +169,6 @@ class PublicDashboardView(HomeAssistantView):
             response.headers["Retry-After"] = "60"
             return response
 
-        license = self._coordinator.license_state
-        if not license.may_serve:
-            return self._unavailable(
-                license.message or "This public dashboard is currently unavailable."
-            )
-
         # Mirror is the only way a dashboard is published. The live renderer and
         # the snapshot companion were removed in 0.4: entries still set to them
         # are served as mirror.
@@ -241,8 +235,7 @@ class PublicDashboardView(HomeAssistantView):
             return self._json(await history.async_fetch(self.hass, parsed))
         html = await mirror.async_render_page(self.hass, self.public_path)
         if html is None:
-            # The mirror's frontend glue arrives with the licensed renderer
-            # payload; until it is installed there is nothing to serve.
+            # Defensive: the frontend glue ships with the integration.
             return self._unavailable(
                 "This dashboard is being prepared. Please try again in a few minutes."
             )

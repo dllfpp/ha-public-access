@@ -8,8 +8,9 @@
 [![Validate](https://img.shields.io/github/actions/workflow/status/dllfpp/ha-public-access/validate.yml?branch=main&label=validate&style=flat-square)](https://github.com/dllfpp/ha-public-access/actions/workflows/validate.yml)
 [![HACS custom](https://img.shields.io/badge/HACS-custom%20repository-41BDF5?style=flat-square)](https://hacs.xyz/)
 ![Home Assistant 2026.1+](https://img.shields.io/badge/Home%20Assistant-2026.1%2B-18bcf2?style=flat-square)
-[![License PolyForm Shield](https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-2f855a?style=flat-square)](LICENSE)
-[![Free trial](https://img.shields.io/badge/free%20trial-5%20days-ff6b35?style=flat-square)](https://publicaccess.dllfpp.cloud)
+[![License MIT](https://img.shields.io/badge/license-MIT-2f855a?style=flat-square)](LICENSE)
+![Free](https://img.shields.io/badge/price-free-2f855a?style=flat-square)
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=flat-square&logo=paypal&logoColor=white)](https://paypal.me/dllfpp)
 </div>
 
 <img width="1920" height="1200" alt="A credential-free wall screen showing a Home Assistant dashboard, read-only, published with Public Access" src="https://github.com/user-attachments/assets/c942ee39-31ac-41fa-a4ca-4bef4612ecce" />
@@ -20,7 +21,7 @@
 | --- | --- | --- |
 | Your theme, your layout, your custom HACS cards, history charts and animations. | Every command, save and script is refused before it reaches Home Assistant. | One view of one dashboard; every other tab and dashboard stays private. |
 | **On your own address** | **Nothing to configure** | **Your data stays home** |
-| A link like `https://home.example.com/solar`: no account, no token, no app. | Works behind Cloudflare and Nginx Proxy Manager as it is. | Pages are served by your Home Assistant; our server only checks the license. |
+| A link like `https://home.example.com/solar`: no account, no token, no app. | Works behind Cloudflare and Nginx Proxy Manager as it is. | Pages are served by your Home Assistant; nothing is sent anywhere else. |
 
 ## Why Public Access
 
@@ -39,9 +40,8 @@ Requires **Home Assistant 2026.1 or later**.
 
 1. Open the link above, or in HACS open **⋮ → Custom repositories** and add `https://github.com/dllfpp/ha-public-access` with category **Integration**.
 2. Download **Public Access** and restart Home Assistant.
-3. Get a free trial key at [publicaccess.dllfpp.cloud](https://publicaccess.dllfpp.cloud): it arrives by email in a minute, no card needed.
-4. Go to **Settings → Devices & services → Add integration → Public Access**, paste the key, then pick the dashboard, the view and the public path.
-5. Open the public link in a private window to see exactly what your visitors see.
+3. Go to **Settings → Devices & services → Add integration → Public Access**, then pick the dashboard, the view and the public path.
+4. Open the public link in a private window to see exactly what your visitors see.
 
 > **Tip:** create a dashboard just for the public, with only what strangers may see. Don't publish your main dashboard.
 
@@ -56,8 +56,8 @@ Requires **Home Assistant 2026.1 or later**.
 | **Visitors at once** | Up to 25, and 4 per address; past that, new visitors are asked to retry |
 | **Requests** | 60 a minute per visitor address |
 | **Search engines** | Asked not to index the page (can be turned off) |
-| **What reaches our server** | The key, a one-way fingerprint of your instance and version numbers; nothing about your home |
-| **Price** | 5-day free trial, then €2.99/month or €30/year per Home Assistant instance |
+| **What leaves your home** | Nothing: no account, no license server, no telemetry |
+| **Price** | Free, open source (MIT). [Donations welcome](https://paypal.me/dllfpp) |
 
 ## The two things you choose
 
@@ -78,7 +78,7 @@ The public path uses lowercase letters, digits and underscores, with **no hyphen
 - **A read-only user underneath.** What is passed on runs as a system user in Home Assistant's own read-only group, so even a message that slipped through would be refused by Home Assistant.
 - **Only the published entities.** Only the entities the published view shows are visible, and no password or token ever reaches the visitor's browser.
 - **Your own login is untouched.** The public page never writes to the browser storage your Home Assistant uses.
-- **Auditable.** The code that enforces this is in this repository. What makes Home Assistant's frontend work behind the glass arrives with your subscription in a package signed by us; the plugin checks the signature before using it and runs it only after the checks above, so it can adapt what a visitor sees but never widen it.
+- **Auditable.** All the code is in this repository, including the glue that makes Home Assistant's frontend work behind the glass (`mirror_core.py`), which runs only after the checks above, so it can adapt what a visitor sees but never widen it. Nothing is downloaded at runtime.
 
 > **What is on the view is visible, though:** if the view shows a camera or a map, visitors see it. Build the public view on purpose.
 
@@ -138,9 +138,7 @@ http:
 
 | Problem | What to do |
 | --- | --- |
-| **The setup refuses my key** | The message says why. *"This instance has already had its free trial"* means a trial was already used on this Home Assistant: subscribe with the link in the message and the same key starts working. |
 | **The address shows "not found"** | The integration is switched off in its options, or you changed the public path: a new path starts working after a Home Assistant restart (a notice reminds you). |
-| **"This dashboard is not available"** | The trial or subscription has ended. Your dashboard is not deleted; subscribing brings the page back. |
 | **My dashboard is not in the list** | Only dashboards saved at least once can be published. Open it, make any change, save. |
 | **My view is not in the list** | Give it an address: open the view's settings and fill in *URL*. |
 | **The path was refused** | It contains a hyphen or is already used by Home Assistant. Pick another word. |
@@ -148,31 +146,26 @@ http:
 | **Everyone gets `403: Forbidden` now and then** | Home Assistant banned your front server's address after failed logins: see [Behind Cloudflare or Nginx Proxy Manager](#behind-cloudflare-or-nginx-proxy-manager). Remove that server's addresses from `ip_bans.yaml`, restart, and reload any tab still showing the public page from a version before 0.4.2. |
 | **After opening the public page, my own Home Assistant answers 403** | Versions before September 2026 stored the public page's placeholder login in your browser, where your real Home Assistant then rejected it until its login protection blocked the address. Current versions never store it and clean up what older ones left. Remove the address from `ip_bans.yaml` (or restore a backup) and restart; then clear the site data of your Home Assistant address in any browser that opened the public page. |
 
-## Price and license
+## Free and open source
 
-A free **5-day trial**, no card, then **€2.99/month or €30/year** per Home Assistant instance, VAT included. Payments, VAT and invoices are handled by Paddle, our merchant of record; you manage or cancel the subscription from Paddle's [customer portal](https://customer-portal.paddle.com/cpl_01m3p9xew3xam29hnd85d6wdn4). When a trial or subscription ends the public page stops; nothing is deleted.
+Public Access is **free for everyone**, with no trial, no account and no limits beyond the safety ones above. The code is released under the [MIT license](LICENSE): use it, study it, change it, share it.
 
-The integration's code is **source-available** under [PolyForm Shield 1.0.0](LICENSE): read it, audit it, run it, modify it for your own use, just don't use it to build a competing product. That is why it is installed as a HACS *custom repository* rather than from the default store.
+> Upgrading from a version before 0.5? Nothing to do: your published dashboard keeps working, the license key you entered is simply no longer used.
+
+## Support the project
+
+If Public Access is useful to you, a donation helps me keep it working with every new Home Assistant release.
+
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/dllfpp)
 
 ## Support and feedback
 
 - [Report a bug or ask for a feature](https://github.com/dllfpp/ha-public-access/issues)
 - [Discuss it on the Home Assistant forum](https://community.home-assistant.io/t/public-access-publish-one-dashboard-publicly-read-only-on-your-own-domain/1026819)
 - Report a vulnerability privately through the repository's *Security → Report a vulnerability*, never in a public issue
-- Payments, refunds and personal data: awiteva28@gmail.com
+- Anything private: awiteva28@gmail.com
 
 ## For the curious
-
-<details>
-<summary><b>How the key and the subscription work</b></summary>
-
-The key is checked when you enter it. Once accepted, Home Assistant keeps a signed permission that it
-verifies on its own, so your page keeps working if our server is briefly unreachable. Our server only
-ever receives the key, a one-way fingerprint of your Home Assistant instance, and version numbers —
-nothing about your home. A trial works on one instance; a paid key can move to a new one when you
-reinstall.
-
-</details>
 
 <details>
 <summary><b>Embedding the page in your own website</b></summary>

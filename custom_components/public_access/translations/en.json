@@ -1,13 +1,6 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Public Access",
-        "description": "Paste the key you received by email.\n\nNo key yet? Start a free trial at {trial_url} — no card needed.",
-        "data": {
-          "license_key": "Subscription key"
-        }
-      },
       "dashboard": {
         "title": "Which dashboard?",
         "description": "Pick the dashboard to publish.\n\nTip: create one just for the public, with only what strangers may see. Only dashboards you have saved at least once appear here.",
@@ -31,8 +24,6 @@
       }
     },
     "error": {
-      "license_refused": "The license server refused this key: {reason}",
-      "cannot_connect": "Could not reach the license server. Check that Home Assistant has internet access and try again.",
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
       "path_in_use": "That path already belongs to a panel or dashboard. Choosing it would hide part of your Home Assistant."
@@ -66,10 +57,6 @@
     }
   },
   "issues": {
-    "subscription_ending": {
-      "title": "Public Access: your subscription needs attention",
-      "description": "Status: {status}. The trial or paid period ends in {days} day(s); after that the public page shows an unavailable notice. (A grace period applies only while the license server is unreachable.) Subscribe or renew at {url}"
-    },
     "restart_required": {
       "title": "Restart to finish moving the public dashboard",
       "description": "The public path changed to {new}, but {old} stays active until Home Assistant restarts, because a route cannot be removed at runtime."

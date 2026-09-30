@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from . import DATA_REGISTERED_PATHS
-from .const import CONF_LICENSE_KEY, CONF_PUBLIC_PATH, DOMAIN
+from .const import CONF_PUBLIC_PATH, DOMAIN
 
 
 async def async_get_config_entry_diagnostics(
@@ -18,7 +18,6 @@ async def async_get_config_entry_diagnostics(
     stored = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     coordinator = stored.get("coordinator")
     options = {**entry.data, **entry.options}
-    key = options.get(CONF_LICENSE_KEY, "")
 
     report: dict[str, Any] = {"error": "not_loaded"}
     if coordinator is not None:
@@ -26,12 +25,8 @@ async def async_get_config_entry_diagnostics(
 
     return {
         "public_path": options.get(CONF_PUBLIC_PATH),
-        "license_key": f"{key[:4]}…" if key else None,
-        "options": {
-            key: value
-            for key, value in options.items()
-            if key != CONF_LICENSE_KEY
-        },
+        # A license key saved by a version before 0.5 is left out.
+        "options": {k: v for k, v in options.items() if k not in ("license_key", "license_server")},
         "published": report,
         "last_visit": _last_visit(hass, options.get(CONF_PUBLIC_PATH)),
     }

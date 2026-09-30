@@ -3,35 +3,17 @@
 from __future__ import annotations
 
 import logging
-import time
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from datetime import timedelta
+from homeassistant.helpers.storage import Store
 
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.loader import async_get_integration
-
-from . import assets, data as ha_data, payload
-from .const import (
-    CONF_LICENSE_KEY,
-    CONF_PUBLIC_PATH,
-    DEFAULT_LICENSE_SERVER,
-    DOMAIN,
-    LICENSE_REFRESH_HOURS,
-    SERVICE_REFRESH_LICENSE,
-)
+from . import assets
+from .const import CONF_PUBLIC_PATH, DOMAIN
 from .coordinator import PublicDashboardCoordinator
-from .license import (
-    STATUS_GRACE,
-    STATUS_INVALID,
-    STATUS_PAST_DUE,
-    LicenseManager,
-    async_forget,
-)
 from .view import PublicDashboardView
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,55 +42,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # touch the filesystem.
     await assets.async_preload(hass)
 
-    integration = await async_get_integration(hass, DOMAIN)
-    fingerprint = ha_data.instance_fingerprint(hass)
-    # Always the production server: an older entry may still carry the
-    # placeholder the 0.1 config flow saved, and nobody needs to change it.
-    server_url = DEFAULT_LICENSE_SERVER
-    license = LicenseManager(
-        hass,
-        entry.data.get(CONF_LICENSE_KEY, ""),
-        fingerprint,
-        server_url,
-        plugin_version=str(integration.version or ""),
-    )
-    await license.async_load()
-    if not license.state.may_serve:
-        _LOGGER.warning(
-            "Public Access is configured but not serving: %s",
-            license.state.message or license.state.status,
-        )
-
-    coordinator = PublicDashboardCoordinator(hass, entry, license)
+    coordinator = PublicDashboardCoordinator(hass, entry)
     domain_data[entry.entry_id] = {DATA_COORDINATOR: coordinator}
-
-    async def _sync_payload() -> None:
-        """Fetch the licensed renderer if the server offers a newer one.
-
-        Failure is not fatal: whatever renderer is already installed keeps
-        serving, and the bundled fallback keeps the page working regardless.
-        """
-        wanted = license.payload_version
-        if not wanted or not license.state.may_serve:
-            return
-        if wanted == assets.installed_version() and assets.mirror_core() is not None:
-            return
-        # Same version but no mirror glue: it was installed by a plugin older
-        # than 0.3, which kept only the renderer. Fetch it again, whole.
-        await payload.async_install(
-            hass,
-            server_url=server_url,
-            license_key=entry.data.get(CONF_LICENSE_KEY, ""),
-            fingerprint=fingerprint,
-            version=wanted,
-        )
-
-    if assets.mirror_core() is None and license.state.may_serve:
-        # Mirror mode needs the glue from a recent payload. The payload version
-        # on record may predate it (an update from 0.2), so ask the server now
-        # rather than at the next scheduled check, hours away.
-        await license.async_refresh(force=True)
-    await _sync_payload()
 
     public_path = {**entry.data, **entry.options}.get(CONF_PUBLIC_PATH)
     # path -> (entry_id, view). The view is kept so a path claimed earlier in this
@@ -152,9 +87,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, "restart_required")
-    # 0.4.3-0.4.5 raised this when visitors came through an untrusted proxy;
-    # visitors are now told apart without any proxy settings, so it is gone.
-    ir.async_delete_issue(hass, DOMAIN, "proxy_not_trusted")
+    # Notices from older versions that no longer apply: the proxy check
+    # (0.4.3-0.4.5) and the subscription (before 0.5, when Public Access became free).
+    for old_issue in ("proxy_not_trusted", "subscription_ending"):
+        ir.async_delete_issue(hass, DOMAIN, old_issue)
 
     @callback
     def _dashboard_changed(_event: Event) -> None:
@@ -166,60 +102,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     entry.async_on_unload(entry.add_update_listener(_options_updated))
 
-    def _update_subscription_notice() -> None:
-        """A repair notice for the owner while the trial or subscription is
-        about to end, or has ended and the page is on the grace period. It is
-        the one place the owner learns this inside Home Assistant."""
-        state = license.state
-        ends = state.subscription_ends_at
-        days_left = None if not ends else int((ends - time.time()) // 86400)
-        ending_soon = days_left is not None and days_left <= 3
-        on_grace = state.status in (STATUS_GRACE, STATUS_PAST_DUE)
-        if (ending_soon or on_grace) and state.status != STATUS_INVALID:
-            ir.async_create_issue(
-                hass,
-                DOMAIN,
-                "subscription_ending",
-                is_fixable=False,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="subscription_ending",
-                translation_placeholders={
-                    "days": str(max(days_left or 0, 0)),
-                    "status": state.status,
-                    "url": state.checkout_url or "https://github.com/dllfpp/ha-public-access",
-                },
-            )
-        else:
-            ir.async_delete_issue(hass, DOMAIN, "subscription_ending")
-
-    _update_subscription_notice()
-
-    async def _refresh_license(_now) -> None:
-        """Re-check the subscription. A failure here is not fatal: the cached
-        entitlement carries the page through until it expires, and then through
-        the grace period."""
-        await license.async_refresh()
-        _update_subscription_notice()
-        await _sync_payload()
-
-    entry.async_on_unload(
-        async_track_time_interval(
-            hass, _refresh_license, timedelta(hours=LICENSE_REFRESH_HOURS)
-        )
-    )
-
-    async def _handle_refresh(_call: ServiceCall) -> None:
-        """Re-check the subscription now.
-
-        Without this, someone who has just paid, or just had a license released,
-        waits up to half a day for the page to come back.
-        """
-        await license.async_refresh(force=True)
-        _update_subscription_notice()
-        await _sync_payload()
-        coordinator.invalidate()
-
-    hass.services.async_register(DOMAIN, SERVICE_REFRESH_LICENSE, _handle_refresh)
     return True
 
 
@@ -242,6 +124,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """The integration was deleted: forget its cached entitlement too, so a new
-    entry starts by activating its own key instead of inheriting this one."""
-    await async_forget(hass)
+    """The integration was deleted: remove anything older versions left behind."""
+    await _async_forget_license_files(hass)
+
+
+async def _async_forget_license_files(hass: HomeAssistant) -> None:
+    """The cached entitlement and downloaded payload of versions before 0.5."""
+    import shutil
+    from pathlib import Path
+
+    await Store(hass, 1, "public_access.license").async_remove()
+    payload_dir = Path(hass.config.path(".storage", "public_access"))
+    await hass.async_add_executor_job(shutil.rmtree, payload_dir, True)

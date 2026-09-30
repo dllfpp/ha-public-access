@@ -140,12 +140,3 @@ def energy_statistic_ids(prefs: dict[str, Any] | None) -> set[str]:
             add(device.get("stat_consumption"))
     return ids
 
-
-def instance_fingerprint(hass: HomeAssistant) -> str:
-    """Stable, non-identifying instance id used for license binding."""
-    import hashlib
-
-    raw = str(hass.data.get("core.uuid") or "unknown")
-    return hashlib.sha256(f"public_access:{raw}".encode()).hexdigest()[:32]
-
-

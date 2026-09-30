@@ -158,9 +158,8 @@ async def async_get_viewer(hass: HomeAssistant) -> tuple[User, RefreshToken]:
 
 
 # The page scripts and the frontend glue (the "lovelace" alias panel, silent
-# subscriptions) come from the licensed renderer payload: see
-# assets.mirror_core(). Everything that decides what a visitor may reach stays
-# here, in the open, and runs before that glue sees a message.
+# subscriptions) live in mirror_core.py. Everything that decides what a visitor
+# may reach stays here and runs before that glue sees a message.
 
 
 class MirrorSession:
@@ -196,7 +195,7 @@ class MirrorSession:
         self._statistics = statistic_ids
         self._templates = templates or set()
         self._types: dict[int, str] = {}
-        # The licensed glue, called only after this class's own filters.
+        # The frontend glue, called only after this class's own filters.
         self._core = core.Session(public_path=public_path, dashboard=dashboard)
         self._loop = hass.loop
         self._error = error_message
@@ -456,8 +455,7 @@ async def async_serve_websocket(
 
 
 async def async_render_page(hass: HomeAssistant, public_path: str) -> str | None:
-    """Home Assistant's own index page, with the licensed page scripts put in
-    place. None when the licensed mirror module is not installed."""
+    """Home Assistant's own index page, with the page scripts put in place."""
     from homeassistant.components import frontend
 
     from . import assets

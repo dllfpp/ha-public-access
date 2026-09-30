@@ -6,8 +6,6 @@ from typing import Final
 
 DOMAIN: Final = "public_access"
 
-CONF_LICENSE_KEY: Final = "license_key"
-CONF_LICENSE_SERVER: Final = "license_server"
 CONF_DASHBOARD: Final = "dashboard"
 CONF_VIEW_PATH: Final = "view_path"
 CONF_PUBLIC_PATH: Final = "public_path"
@@ -18,11 +16,6 @@ CONF_FRAME_ANCESTORS: Final = "frame_ancestors"
 
 
 DEFAULT_PUBLIC_PATH: Final = "public"
-DEFAULT_LICENSE_SERVER: Final = "https://api.dllfpp.cloud"
-TRIAL_URL: Final = "https://publicaccess.dllfpp.cloud"
-# How often the integration re-checks the subscription. The server also refuses
-# to be polled harder than this.
-LICENSE_REFRESH_HOURS: Final = 12
 DEFAULT_CACHE_SECONDS: Final = 300
 DEFAULT_NOINDEX: Final = True
 
@@ -75,8 +68,6 @@ RESERVED_PATHS: Final[frozenset[str]] = frozenset(
     }
 )
 
-# Service exposed so support can tell a customer "reload the license now".
-SERVICE_REFRESH_LICENSE: Final = "refresh_license"
 
 # Concurrent public websocket sessions, in total and per visitor address. Each
 # one is a live connection on the owner's instance; past the cap new visitors

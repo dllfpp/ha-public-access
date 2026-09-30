@@ -13,12 +13,11 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import assets, data as ha_data
+from . import data as ha_data
 from .const import (
     CONF_DASHBOARD,
     CONF_VIEW_PATH,
 )
-from .license import LicenseManager, LicenseState
 from .sanitize import view_matches
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,15 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PublicDashboardCoordinator:
-    """One published dashboard: its options, its license, and the allowlists
-    the mirror applies to every visitor."""
+    """One published dashboard: its options, and the allowlists the mirror
+    applies to every visitor."""
 
-    def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, license: LicenseManager
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
-        self._license = license
         # Cleared on unload: the route cannot be unregistered, so the view checks
         # this instead and answers 404 once the entry is gone.
         self.active = True
@@ -44,10 +40,6 @@ class PublicDashboardCoordinator:
     @property
     def options(self) -> dict[str, Any]:
         return {**self.entry.data, **self.entry.options}
-
-    @property
-    def license_state(self) -> LicenseState:
-        return self._license.state
 
     def invalidate(self) -> None:
         """Called when the dashboard or the options change. Nothing is cached:
@@ -121,12 +113,6 @@ class PublicDashboardCoordinator:
             "entity_allowlist": sorted(entities) if entities is not None else "(no view found)",
             "statistic_allowlist": sorted(statistics) if statistics is not None else "(no view found)",
             "templates_allowed": len(templates),
-            "license": self.license_state.as_dict(),
-            "mirror_module": {
-                "installed_payload": assets.installed_version(),
-                "offered_payload": self._license.payload_version,
-                "loaded": assets.mirror_core() is not None,
-            },
         }
 
 
