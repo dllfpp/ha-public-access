@@ -19,9 +19,7 @@
 | Your real dashboard | Nothing to press | Only what you chose |
 | --- | --- | --- |
 | Your theme, your layout, your custom HACS cards, history charts and animations. | Every command, save and script is refused before it reaches Home Assistant. | One view of one dashboard; every other tab and dashboard stays private. |
-
-| On your own address | Nothing to configure | Your data stays home |
-| --- | --- | --- |
+| **On your own address** | **Nothing to configure** | **Your data stays home** |
 | A link like `https://home.example.com/solar`: no account, no token, no app. | Works behind Cloudflare and Nginx Proxy Manager as it is. | Pages are served by your Home Assistant; our server only checks the license. |
 
 ## Why Public Access
