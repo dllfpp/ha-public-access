@@ -31,6 +31,7 @@ from .const import (
     CONF_DASHBOARD,
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
+    CONF_LOADING_BACKGROUND,
     CONF_NOINDEX,
     CONF_PUBLIC_PATH,
     CONF_VIEW_PATH,
@@ -41,6 +42,7 @@ from .const import (
 )
 
 PATH_PATTERN = re.compile(r"^[a-z0-9_]{2,48}$")
+COLOR_PATTERN = re.compile(r"^#(?:[0-9a-f]{3}|[0-9a-f]{6})$")
 
 # Dropdown value for a first view that has no address of its own.
 FIRST_VIEW = "__first__"
@@ -222,10 +224,14 @@ class PublicAccessOptionsFlow(OptionsFlow):
                 error = validate_public_path(self.hass, path)
                 if error:
                     errors[CONF_PUBLIC_PATH] = error
+            color = (user_input.get(CONF_LOADING_BACKGROUND) or "").strip().lower()
+            if color and not COLOR_PATTERN.match(color):
+                errors[CONF_LOADING_BACKGROUND] = "invalid_color"
             if not errors:
                 return self.async_create_entry(
                     data={
                         **user_input,
+                        CONF_LOADING_BACKGROUND: color,
                         CONF_PUBLIC_PATH: path,
                         CONF_VIEW_PATH: _stored_view((user_input.get(CONF_VIEW_PATH) or "").strip()),
                     }
@@ -276,6 +282,10 @@ class PublicAccessOptionsFlow(OptionsFlow):
                 vol.Optional(
                     CONF_FRAME_ANCESTORS,
                     default=current.get(CONF_FRAME_ANCESTORS) or "",
+                ): str,
+                vol.Optional(
+                    CONF_LOADING_BACKGROUND,
+                    default=current.get(CONF_LOADING_BACKGROUND) or "",
                 ): str,
             }
         )

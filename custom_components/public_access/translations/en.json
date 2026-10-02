@@ -44,7 +44,8 @@
           "view_path": "View to publish (a tab of the dashboard)",
           "public_path": "Public path (the part after your Home Assistant address)",
           "noindex": "Ask search engines not to index it",
-          "frame_ancestors": "Allowed embedding origins (CSP frame-ancestors)"
+          "frame_ancestors": "Allowed embedding origins (CSP frame-ancestors)",
+          "loading_background": "Loading screen colour (hex, e.g. #111111; empty = Home Assistant default)"
         }
       }
     },
@@ -53,7 +54,8 @@
       "cannot_connect": "Could not reach the license server. Check that Home Assistant has internet access and try again.",
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
-      "path_in_use": "That path already belongs to a panel or dashboard."
+      "path_in_use": "That path already belongs to a panel or dashboard.",
+      "invalid_color": "Use a hex colour such as #111 or #1b1c1e, or leave it empty."
     }
   },
   "issues": {

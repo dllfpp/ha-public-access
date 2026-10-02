@@ -44,7 +44,8 @@
           "view_path": "Vista da pubblicare (una scheda della dashboard)",
           "public_path": "Percorso pubblico (la parte dopo l’indirizzo del tuo Home Assistant)",
           "noindex": "Chiedi ai motori di ricerca di non indicizzarla",
-          "frame_ancestors": "Origini autorizzate all'incorporamento (CSP frame-ancestors)"
+          "frame_ancestors": "Origini autorizzate all'incorporamento (CSP frame-ancestors)",
+          "loading_background": "Colore della schermata di caricamento (esadecimale, es. #111111; vuoto = predefinito di Home Assistant)"
         }
       }
     },
@@ -53,7 +54,8 @@
       "cannot_connect": "Impossibile raggiungere il server delle licenze. Verifica che Home Assistant abbia accesso a internet e riprova.",
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
-      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard."
+      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard.",
+      "invalid_color": "Usa un colore esadecimale come #111 o #1b1c1e, oppure lascia vuoto."
     }
   },
   "issues": {

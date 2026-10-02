@@ -32,6 +32,7 @@ from .const import (
     CONF_DASHBOARD,
     CONF_ENABLED,
     CONF_FRAME_ANCESTORS,
+    CONF_LOADING_BACKGROUND,
     CONF_NOINDEX,
     CONF_VIEW_PATH,
     DEFAULT_CACHE_SECONDS,
@@ -233,7 +234,9 @@ class PublicDashboardView(HomeAssistantView):
             if isinstance(parsed, str):
                 return self._json({"message": parsed}, status=400)
             return self._json(await history.async_fetch(self.hass, parsed))
-        html = await mirror.async_render_page(self.hass, self.public_path)
+        html = await mirror.async_render_page(
+            self.hass, self.public_path, options.get(CONF_LOADING_BACKGROUND)
+        )
         if html is None:
             # Defensive: the frontend glue ships with the integration.
             return self._unavailable(
