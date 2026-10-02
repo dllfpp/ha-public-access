@@ -136,6 +136,7 @@ http:
 | Public path | `public` | Where it is public |
 | Ask search engines not to index it | on | Keeps the page out of Google and friends |
 | Allowed embedding origins | — | Sites allowed to show the page in a frame (see [For the curious](#for-the-curious)) |
+| Loading screen colour | — | A hex colour (e.g. `#111111`) for Home Assistant's launch screen. Empty: the frontend's default, near-white unless the device is in dark mode. Useful on wall screens and digital signage, where the white flash shows on every reload |
 
 ## Troubleshooting
 

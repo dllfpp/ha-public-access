@@ -454,7 +454,9 @@ async def async_serve_websocket(
     return ws
 
 
-async def async_render_page(hass: HomeAssistant, public_path: str) -> str | None:
+async def async_render_page(
+    hass: HomeAssistant, public_path: str, loading_background: str | None = None
+) -> str | None:
     """Home Assistant's own index page, with the page scripts put in place."""
     from homeassistant.components import frontend
 
@@ -478,4 +480,4 @@ async def async_render_page(hass: HomeAssistant, public_path: str) -> str | None
         extra_modules=hass.data[frontend.DATA_EXTRA_MODULE_URL].urls,
         extra_js_es5=hass.data[frontend.DATA_EXTRA_JS_URL_ES5].urls,
     )
-    return core.assemble_page(html, public_path)
+    return core.assemble_page(html, public_path, loading_background)

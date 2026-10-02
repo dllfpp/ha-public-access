@@ -13,6 +13,7 @@ CONF_ENABLED: Final = "enabled"
 CONF_NOINDEX: Final = "noindex"
 CONF_CACHE_SECONDS: Final = "cache_seconds"
 CONF_FRAME_ANCESTORS: Final = "frame_ancestors"
+CONF_LOADING_BACKGROUND: Final = "loading_background"
 
 
 DEFAULT_PUBLIC_PATH: Final = "public"

@@ -25,9 +25,12 @@ The integration checks API_VERSION before using this module.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 API_VERSION = 1
+
+HEX_COLOR = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
 
 
 # -- the page --------------------------------------------------------------------
@@ -107,13 +110,38 @@ GLASS_SCRIPT = r"""
 """
 
 
-def assemble_page(index_html: str, public_path: str) -> str:
+def loading_style(color: str | None) -> str:
+    """The launch screen in the owner's colour instead of the frontend's.
+
+    Home Assistant paints its launch screen near-white (#fafafa) unless the
+    visitor's device is in dark mode. On a wall screen or a digital signage
+    player that flash shows on every reload. Only a validated hex colour is
+    accepted, so nothing else can reach the page. On a dark colour the
+    attribution switches to the variant the frontend uses in dark mode.
+    """
+    if not color or not HEX_COLOR.fullmatch(color):
+        return ""
+    digits = color[1:]
+    if len(digits) == 3:
+        digits = "".join(c * 2 for c in digits)
+    r, g, b = (int(digits[i : i + 2], 16) for i in (0, 2, 4))
+    css = f"html:root,html:root body #ha-launch-screen{{background-color:{color}}}"
+    if 0.2126 * r + 0.7152 * g + 0.0722 * b < 128:
+        css += (
+            "#ha-launch-screen{color:#e1e1e1}"
+            "#ha-launch-screen .ohf-logo img{content:url(/static/images/open-home-foundation-on-dark.svg)}"
+        )
+    return f"<style>{css}</style>"
+
+
+def assemble_page(index_html: str, public_path: str, loading_background: str | None = None) -> str:
     """Home Assistant's own index page with the scripts put in place."""
+    early = head_script(public_path) + loading_style(loading_background)
     head = index_html.find("<head>")
     if head < 0:
-        return head_script(public_path) + index_html + GLASS_SCRIPT
+        return early + index_html + GLASS_SCRIPT
     insert = head + len("<head>")
-    return index_html[:insert] + head_script(public_path) + index_html[insert:] + GLASS_SCRIPT
+    return index_html[:insert] + early + index_html[insert:] + GLASS_SCRIPT
 
 
 # -- a visitor's connection --------------------------------------------------------
