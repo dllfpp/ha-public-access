@@ -233,7 +233,14 @@ class PublicDashboardView(HomeAssistantView):
             parsed = history.parse_query(start, dict(request.query), entity_ids or set())
             if isinstance(parsed, str):
                 return self._json({"message": parsed}, status=400)
-            return self._json(await history.async_fetch(self.hass, parsed))
+            response = self._json(await history.async_fetch(self.hass, parsed))
+            # Never reusable: cards ask for "new points up to the chart's end"
+            # (ApexCharts with span: start/end: day), and that URL stays the
+            # same until a new point arrives. A cached answer would freeze the
+            # chart for the cache lifetime; Home Assistant's own history API
+            # isn't cacheable either.
+            response.headers["Cache-Control"] = "no-store"
+            return response
         html = await mirror.async_render_page(
             self.hass, self.public_path, options.get(CONF_LOADING_BACKGROUND)
         )
