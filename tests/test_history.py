@@ -55,3 +55,23 @@ def test_states_are_serialized_as_dicts_not_text():
     out = json.loads(json_dumps([[State("sensor.solar_power", "412", {"unit_of_measurement": "W"})]]))
     assert out[0][0]["entity_id"] == "sensor.solar_power"
     assert out[0][0]["state"] == "412" and out[0][0]["attributes"]["unit_of_measurement"] == "W"
+
+
+def test_a_chart_that_ends_in_the_future_still_gets_data_up_to_now():
+    """ApexCharts with span: end: year asks for Jan 1 to Dec 31: the range must
+    end now, not leave an empty window at the end of the year."""
+    q = parse_query("2026-01-01T00:00:00+00:00", {"filter_entity_id": "weather.home", "end_time": "2026-12-31T23:59:59+00:00"}, ALLOWED, now=NOW)
+    assert q.end == NOW
+    assert q.end - q.start == MAX_SPAN
+
+
+def test_a_range_entirely_in_the_future_is_empty_not_an_error():
+    q = parse_query("2026-12-01T00:00:00+00:00", {"filter_entity_id": "weather.home", "end_time": "2026-12-31T00:00:00+00:00"}, ALLOWED, now=NOW)
+    assert q.start == q.end == NOW
+
+
+def test_the_cap_follows_what_the_recorder_keeps():
+    q = parse_query("2026-01-01T00:00:00+00:00", {"filter_entity_id": "weather.home", "end_time": "2026-12-31T00:00:00+00:00"},
+                    ALLOWED, now=NOW, max_span=timedelta(days=46))
+    assert q.end == NOW and q.end - q.start == timedelta(days=46)
+

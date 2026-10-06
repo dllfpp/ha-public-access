@@ -23,6 +23,19 @@ ONE_DAY = timedelta(days=1)
 MAX_SPAN = timedelta(days=31)
 
 
+def max_span(hass: HomeAssistant) -> timedelta:
+    """The longest range a visitor may ask for: what the recorder keeps
+    (its purge_keep_days), never less than MAX_SPAN. Older states do not exist,
+    so this matches what the owner's own dashboard can show."""
+    try:
+        from homeassistant.components.recorder import get_instance
+
+        keep = int(get_instance(hass).keep_days)
+    except Exception:  # noqa: BLE001 - no recorder, or an unexpected shape
+        return MAX_SPAN
+    return max(MAX_SPAN, timedelta(days=keep + 1))
+
+
 @dataclass(frozen=True)
 class HistoryQuery:
     start: datetime
@@ -39,6 +52,7 @@ def parse_query(
     query: dict[str, str],
     allowed: set[str],
     now: datetime | None = None,
+    max_span: timedelta = MAX_SPAN,
 ) -> HistoryQuery | str:
     """Home Assistant's own rules for the history endpoint, plus the allowlist.
 
@@ -68,8 +82,13 @@ def parse_query(
         end = dt_util.as_utc(end)
     else:
         end = start + ONE_DAY
-    if end - start > MAX_SPAN:
-        start = end - MAX_SPAN
+    # Nothing can exist after now. Charts that end in the future (ApexCharts
+    # with span: end: year/month/week) must still get the data up to now:
+    # capping the span from a future end would leave an empty window.
+    end = min(end, now)
+    start = min(start, end)
+    if end - start > max_span:
+        start = end - max_span
 
     return HistoryQuery(
         start=start,

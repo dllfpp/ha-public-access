@@ -230,7 +230,10 @@ class PublicDashboardView(HomeAssistantView):
 
             entity_ids, _ = await self._coordinator.async_mirror_allowlists()
             start = route.removeprefix("api/history/period").strip("/") or None
-            parsed = history.parse_query(start, dict(request.query), entity_ids or set())
+            parsed = history.parse_query(
+                start, dict(request.query), entity_ids or set(),
+                max_span=history.max_span(self.hass),
+            )
             if isinstance(parsed, str):
                 return self._json({"message": parsed}, status=400)
             response = self._json(await history.async_fetch(self.hass, parsed))
