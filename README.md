@@ -16,7 +16,7 @@
 > [!NOTE]
 > **Public Access is free and open source since 0.5 (MIT license).** No trial, no key, no subscription, no account: install it from HACS and publish your dashboard. If it is useful to you, a [donation via Buy Me a Coffee](https://buymeacoffee.com/dllfpp) is welcome, entirely optional.
 
-<img width="1920" height="1200" alt="A credential-free wall screen showing a Home Assistant dashboard, read-only, published with Public Access" src="https://github.com/user-attachments/assets/c942ee39-31ac-41fa-a4ca-4bef4612ecce" />
+<img width="1920" height="1200" alt="A credential-free wall screen showing a Home Assistant dashboard, read-only, published with Public Access" src="https://raw.githubusercontent.com/dllfpp/ha-public-access/main/docs/screenshots/wall-screen.png" />
 
 ## One dashboard, for everyone to see
 
