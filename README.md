@@ -54,7 +54,7 @@ Requires **Home Assistant 2026.1 or later**.
 
 | | |
 | --- | --- |
-| **What is public** | One view of one dashboard, at a path you choose on your own address |
+| **What is public** | One view of a dashboard per public path; add more with **Add service** (one path each) |
 | **What visitors can do** | Look, switch periods, read tooltips; never press, save or run anything |
 | **Visitors at once** | Up to 25, and 4 per address; past that, new visitors are asked to retry |
 | **Requests** | 60 a minute per visitor address |

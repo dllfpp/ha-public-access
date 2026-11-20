@@ -30,3 +30,16 @@ def test_first_view_is_stored_as_no_path():
     assert _stored_view(FIRST_VIEW) is None
     assert _stored_view("") is None
     assert _stored_view("solar") == "solar"
+
+
+def test_a_path_published_by_another_entry_is_refused():
+    from types import SimpleNamespace
+
+    from custom_components.public_access import config_flow
+
+    other = SimpleNamespace(entry_id="a", data={"public_path": "solar"}, options={})
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_entries=lambda domain: [other]))
+    config_flow.ha_data.registered_panel_paths = lambda h: set()
+    assert config_flow.validate_public_path(hass, "solar") == "path_published"
+    assert config_flow.validate_public_path(hass, "solar", "a") is None
+    assert config_flow.validate_public_path(hass, "weather") is None

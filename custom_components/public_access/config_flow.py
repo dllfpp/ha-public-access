@@ -82,14 +82,20 @@ def public_base_url(hass: Any) -> str:
         return "https://your-home-assistant"
 
 
-def validate_public_path(hass: Any, path: str) -> str | None:
-    """Return an error key, or None when the path is safe to claim."""
+def validate_public_path(hass: Any, path: str, entry_id: str | None = None) -> str | None:
+    """Return an error key, or None when the path is safe to claim.
+
+    Several dashboards can be published, one config entry each: a path already
+    published by another entry is refused too."""
     if not PATH_PATTERN.match(path or ""):
         return "invalid_path"
     if path in RESERVED_PATHS:
         return "path_reserved"
     if path in ha_data.registered_panel_paths(hass):
         return "path_in_use"
+    for other in hass.config_entries.async_entries(DOMAIN):
+        if other.entry_id != entry_id and {**other.data, **other.options}.get(CONF_PUBLIC_PATH) == path:
+            return "path_published"
     return None
 
 
@@ -106,8 +112,6 @@ class PublicAccessConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Start with the dashboard: there is nothing else to ask first."""
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
         return await self.async_step_dashboard()
 
     async def async_step_dashboard(
@@ -221,7 +225,7 @@ class PublicAccessOptionsFlow(OptionsFlow):
         if user_input is not None:
             path = user_input[CONF_PUBLIC_PATH].strip().strip("/").lower()
             if path != current.get(CONF_PUBLIC_PATH):
-                error = validate_public_path(self.hass, path)
+                error = validate_public_path(self.hass, path, self.config_entry.entry_id)
                 if error:
                     errors[CONF_PUBLIC_PATH] = error
             color = (user_input.get(CONF_LOADING_BACKGROUND) or "").strip().lower()

@@ -26,10 +26,10 @@
     "error": {
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
-      "path_in_use": "That path already belongs to a panel or dashboard. Choosing it would hide part of your Home Assistant."
+      "path_in_use": "That path already belongs to a panel or dashboard. Choosing it would hide part of your Home Assistant.",
+      "path_published": "That path already publishes another dashboard with Public Access."
     },
     "abort": {
-      "single_instance_allowed": "Public Access is already configured.",
       "no_dashboards": "No dashboard has a saved configuration yet. Create a dashboard, add cards, save it, then set this up."
     }
   },
@@ -55,7 +55,8 @@
       "invalid_path": "Use 2-48 characters: lowercase letters, digits and underscores only (no hyphen).",
       "path_reserved": "That path is reserved by Home Assistant.",
       "path_in_use": "That path already belongs to a panel or dashboard.",
-      "invalid_color": "Use a hex colour such as #111 or #1b1c1e, or leave it empty."
+      "invalid_color": "Use a hex colour such as #111 or #1b1c1e, or leave it empty.",
+      "path_published": "That path already publishes another dashboard with Public Access."
     }
   },
   "issues": {

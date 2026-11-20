@@ -26,10 +26,10 @@
     "error": {
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
-      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard. Usarlo nasconderebbe una parte del tuo Home Assistant."
+      "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard. Usarlo nasconderebbe una parte del tuo Home Assistant.",
+      "path_published": "Questo percorso pubblica già un'altra dashboard con Public Access."
     },
     "abort": {
-      "single_instance_allowed": "Public Access è già configurato.",
       "no_dashboards": "Nessuna dashboard ha una configurazione salvata. Crea una dashboard, aggiungi le card, salvala e poi configura questa integrazione."
     }
   },
@@ -55,7 +55,8 @@
       "invalid_path": "Usa da 2 a 48 caratteri: solo lettere minuscole, cifre e underscore (nessun trattino).",
       "path_reserved": "Questo percorso è riservato da Home Assistant.",
       "path_in_use": "Questo percorso appartiene già a un pannello o a una dashboard.",
-      "invalid_color": "Usa un colore esadecimale come #111 o #1b1c1e, oppure lascia vuoto."
+      "invalid_color": "Usa un colore esadecimale come #111 o #1b1c1e, oppure lascia vuoto.",
+      "path_published": "Questo percorso pubblica già un'altra dashboard con Public Access."
     }
   },
   "issues": {
